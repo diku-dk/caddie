@@ -1,6 +1,6 @@
 
 all:
-	mosml diff.sml
+	mosml -P full diff.sml
 
 clean:
 	rm -rf MLB *~ run
