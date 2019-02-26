@@ -1,3 +1,19 @@
+(* Dynamically tagged version of combinatory differentiation interpretation (in SML)
+ *
+ * There are currently a number of issues with the code. First, for
+ * functions that take only one argument, we need to treat Prj1 as the
+ * identity.. Second, differentiation of
+ *
+ * Todo:
+ *  1) Fix issues
+ *  2) Pretty-print/evaluate Lin expressions
+ *  3) Experiment with forward/reverse mode differences
+ *  4) Instead of evaluating expressions, I believe we can build up
+ *     expressions parameterised over the input variables (at least when
+ *     we don't try to differentiate conditional expressions, recursion,
+ *     and such...
+ *)
+
 fun die s = (print ("Error: " ^ s ^ "\n"); raise Fail s)
 
 datatype ty = REAL | INT | PROD of ty * ty | ARROW of ty*ty | LIST of ty
@@ -45,43 +61,6 @@ fun liftP s (f: v*v->v) : v -> v =
     fn P p => f p
      | _ => die ("type error liftP - expecting pair (" ^ s ^ ")")
 
-structure Vec = struct
-  type vs = {vty:ty,fty:ty,add:v*v->v,scale:v*v->v,zero:v,one:v,neg:v->v,inv:v->v}
-
-  val vs_real : vs =
-      {vty   = REAL,
-       fty   = REAL,
-       add   = lift2R Real.+,
-       scale = lift2R Real.*,
-       zero  = R 0.0,
-       one   = R 1.0,
-       neg   = lift1R (Real.~),
-       inv   = lift1R (fn x => Real./(1.0,x))}
-
-  val vs_int : vs =
-      {vty   = INT,
-       fty   = INT,
-       add   = lift2I Int.+,
-       scale = lift2I Int.*,
-       zero  = I 0,
-       one   = I 1,
-       neg   = lift1I (Int.~),
-       inv   = lift1I (fn x => Int.div(1,x))}
-
-  fun prod_vs ({vty,fty,add,scale,zero,one,neg,inv}:vs) : vs =
-      {vty=PROD(vty,vty),fty=PROD(fty,fty),
-       add=fn (P(x1,y1),P(x2,y2)) => P(add(x1,x2),add(y1,y2))
-            | _ => die "type error",
-       scale=fn (P(x1,y1),P(x2,y2)) => P(scale(x1,x2),scale(y1,y2))
-              | _ => die "type error",
-       zero=P(zero,zero),
-       one=P(one,one),
-       neg=fn P(x,y) => P(neg x,neg y)
-            | _ => die "type error",
-       inv=fn P(x,y) => P(inv x,inv y)
-            | _ => die "type error"}
-end
-
 structure Fun = struct
 
 datatype f =
@@ -116,40 +95,6 @@ fun pp e =
       | K v => pp_v v
       | FProd(f,g) => "(" ^ pp f ^ " x " ^ pp g ^ ")"
       | Dub => "dup"
-
-(*
-fun dom f =
-    case f of
-        Ln => REAL
-      | Exp => REAL
-      | Sin => REAL
-      | Cos => REAL
-      | Pow _ => REAL
-      | Comp(f,g) => dom g
-      | Add => PROD(REAL,REAL)
-      | Mul => PROD(REAL,REAL)
-      | K(_,t) => t
-      | Prj1 t => t
-      | Prj2 t => t
-      | FPair(f,g) => PROD(dom f,dom g)
-
-fun ran f =
-    case f of
-        Ln => REAL
-      | Exp => REAL
-      | Sin => REAL
-      | Cos => REAL
-      | Pow _ => REAL
-      | Comp(f,g) => ran f
-      | Add => REAL
-      | Mul => REAL
-      | K(v,_) => ty_of_v v
-      | Prj1 (PROD(t,_)) => t
-      | Prj2 (PROD(_,t)) => t
-      | Prj1 _ => die "type error - expecting prod"
-      | Prj2 _ => die "type error - expecting prod"
-      | FPair(f,g) => PROD(ran f,ran g)
-*)
 end
 
 structure Lin = struct
