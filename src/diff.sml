@@ -106,7 +106,7 @@ datatype lin = Lin of v -> v
              | Comp of lin * lin
              | CurryL of bin * v
              | CurryR of bin * v
-val mulR : bin = lift2R (op *)
+val mulR : bin = lift2R (op * )
 end
 
 structure Diff = struct
