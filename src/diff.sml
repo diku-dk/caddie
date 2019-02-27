@@ -126,6 +126,21 @@ fun opt e =
     in if tick_read() > 0 then opt e'
        else e'
     end
+
+structure DSL = struct
+val op x = FProd
+val op + = Add
+val op * = Mul
+val op o = Comp
+val sin = Sin
+val cos = Cos
+val exp = Exp
+val ln = Ln
+val pow = Pow
+val ~ = Neg
+val dup = Dup
+val id = Id
+end
 end (* Fun *)
 
 signature LIN = sig
@@ -336,10 +351,28 @@ fun try_ex {name, e, arg, d} =
         val () = print ("  f'(...)(" ^ Val.pp d ^ ") = " ^ Val.pp r' ^ "\n")
     in ()
     end
+
+fun try_fun {name, f, arg, d} =
+    let val () = print ("Trying fun example: " ^ name ^ "\n")
+        val () = print ("  f = " ^ Fun.pp f ^ "\n")
+        val (r,l) = Diff.diff f arg
+        val () = print ("  f(" ^ Val.pp arg ^ ") = " ^ Val.pp r ^ "\n")
+        val () = print ("  f'(" ^ Val.pp arg ^ ") = " ^ Lin.pp l ^ "\n")
+        val r' = Lin.eval l d
+        val () = print ("  f'(...)(" ^ Val.pp d ^ ") = " ^ Val.pp r' ^ "\n")
+    in ()
+    end
+
 local open Exp.DSL
 in
 val () = try_ex {name="ex1", e=ln (sin x1), arg=V.T[V.R 3.0], d=V.T[V.R 1.0]}
 val () = try_ex {name="ex2", e=x1*x2, arg=V.T[V.R 3.0,V.R 1.0], d=V.T[V.R 1.0,V.R 0.0]}
 val () = try_ex {name="ex3", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.R 3.0,V.R 1.0], d=V.T[V.R 1.0,V.R 0.0]}
+end
+
+local open Fun.DSL
+      infix x nonfix + nonfix *
+in
+val () = try_fun {name="fun1", f=(id x ln) o dup o (+) o (cos x sin),arg=V.T[V.R 1.5,V.R 2.0],d=V.T[V.R 2.0,V.R 2.0]}
 end
 end
