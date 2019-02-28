@@ -15,7 +15,12 @@
 fun die s = (print ("Error: " ^ s ^ "\n"); raise Fail s)
 
 signature VAL = sig
-  datatype v = R of real | I of int | T of v list
+  type v
+  val R   : real -> v
+  val I   : int -> v
+  val T   : v list -> v
+
+  val unT : v -> v list option
   val pp : v -> string
   val prjI : string -> int -> v -> v
   val add : v -> v
@@ -30,6 +35,9 @@ end
 
 structure Val :> VAL = struct
 datatype v = R of real | I of int | T of v list
+
+fun unT (T xs) = SOME xs
+  | unT _ = NONE
 
 fun pp v =
     case v of
@@ -70,8 +78,139 @@ fun pow i = lift1R (fn x => Math.pow(x,real i))
 val mul = liftP "mul" (lift2R (op * ))
 end (* Val *)
 
-structure Fun = struct
+structure TermVal = struct
+type var = string
+datatype v = R of real | I of int | T of v list | Sin of v | Cos of v | Ln of v | Exp of v
+           | Neg of v | Mul of v*v | Add of v*v | Pow of int * v | Var of var
 
+fun unT (T xs) = SOME xs
+  | unT _ = NONE
+
+fun pp v =
+    case v of
+        R r => Real.toString r
+      | I i => Int.toString i
+      | T vs => "(" ^ String.concatWith "," (map pp vs) ^ ")"
+      | Sin v => "sin(" ^ pp v ^ ")"
+      | Cos v => "cos(" ^ pp v ^ ")"
+      | Ln v => "ln(" ^ pp v ^ ")"
+      | Exp v => "exp(" ^ pp v ^ ")"
+      | Pow(i,v) => "pow(" ^ Int.toString i ^ "," ^ pp v ^ ")"
+      | Neg v => "neg(" ^ pp v ^ ")"
+      | Add(v1,v2) => "(" ^ pp v1 ^ " + " ^ pp v2 ^ ")"
+      | Mul(v1,v2) => "(" ^ pp v1 ^ " * " ^ pp v2 ^ ")"
+      | Var v => v
+
+fun prjI (s:string) (i:int) : v -> v =
+    fn T xs => (List.nth(xs,i-1) handle _ => die (s ^ " index error"))
+     | v => die ("type error prjI - expecting tuple (" ^ s ^ ") - got " ^ pp v)
+
+fun add v =
+    case unT v of
+        SOME [v1,v2] => Add(v1,v2)
+      | _ => die ("type error add - expecting pair - got " ^ pp v)
+
+fun mul v =
+    case unT v of
+        SOME [v1,v2] => Mul(v1,v2)
+      | _ => die ("type error mul - expecting pair - got " ^ pp v)
+
+val sin = Sin
+val cos = Cos
+val ln = Ln
+val exp = Exp
+val neg = Neg
+fun pow i v = Pow(i,v)
+val var = Var
+
+local val t = ref 0
+in fun tick_reset() = t := 0
+   fun tick() = t:= !t + 1
+   fun tick_read() = !t
+end
+
+fun simpl0 v =
+    case v of
+        Add(R r1,R r2) => (tick(); R (r1+r2))
+      | Add(I r1,I r2) => (tick(); I (r1+r2))
+      | Mul(R r1,R r2) => (tick(); R (r1*r2))
+      | Mul(I r1,I r2) => (tick(); I (r1*r2))
+      | Add(R r,v) => if Real.==(r,0.0) then (tick(); simpl0 v)
+                      else Add(R r,simpl0 v)
+      | Add(v,R r) => if Real.==(r,0.0) then (tick(); simpl0 v)
+                      else Add(simpl0 v,R r)
+      | Mul(R r,v) => if Real.==(r,0.0) then (tick(); R 0.0)
+                      else if Real.==(r,1.0) then (tick(); simpl0 v)
+                      else Mul(R r,simpl0 v)
+      | Mul(v,R r) => if Real.==(r,0.0) then (tick(); R 0.0)
+                      else if Real.==(r,1.0) then (tick(); simpl0 v)
+                      else Mul(simpl0 v,R r)
+      | Mul(v1,v2) => Mul(simpl0 v1,simpl0 v2)
+      | Add(v1,v2) => Add(simpl0 v1,simpl0 v2)
+      | Sin v => Sin (simpl0 v)
+      | Cos v => Cos (simpl0 v)
+      | Ln v => Ln (simpl0 v)
+      | Exp v => Exp (simpl0 v)
+      | Pow(1,v) => (tick(); simpl0 v)
+      | Pow(0,_) => (tick(); R 1.0)
+      | Pow(i,v) => Pow(i,simpl0 v)
+      | Neg(R r) => (tick(); R (~r))
+      | Neg(I i) => (tick(); I (~i))
+      | Neg v => Neg (simpl0 v)
+      | T vs => T (map simpl0 vs)
+      | R _ => v
+      | I _ => v
+      | Var _ => v
+
+fun simpl e =
+    let val () = tick_reset()
+        val e' = simpl0 e
+    in if tick_read() > 0 then simpl e'
+       else e'
+    end
+
+end (* TermVal *)
+
+
+signature FUN = sig
+  type v
+  datatype f =
+         Comp of f * f     (* X -> Y *)
+       | Ln                (* R -> R *)
+       | Exp               (* R -> R *)
+       | Sin               (* R -> R *)
+       | Cos               (* R -> R *)
+       | Pow of int        (* R -> R *)
+       | Neg               (* R -> R *)
+       | Prj of int        (* X1*...*Xn->Xi *)
+       | Add               (* R*R->R *)
+       | Mul               (* R*R->R *)
+       | K of v            (* X -> Y *)
+       | FProd of f * f    (*A*B->C*D*)
+       | Dup               (* X->X*X *)
+       | Id                (* X -> X *)
+
+  val pp  : f -> string
+  val opt : f -> f
+  structure DSL : sig
+    val x : f * f -> f
+    val + : f
+    val * : f
+    val o : f * f -> f
+    val sin  : f
+    val cos  : f
+    val exp  : f
+    val ln   : f
+    val pow  : int -> f
+    val ~    : f
+    val dup  : f
+    val id   : f
+  end
+end
+
+functor Fun(V:VAL) :> FUN where type v = V.v = struct
+
+type v = V.v
 datatype f =
          Comp of f * f     (* X -> Y *)
        | Ln                (* R -> R *)
@@ -83,7 +222,7 @@ datatype f =
        | Prj of int        (* X1*...*Xn->Xi *)
        | Add               (* R*R->R *)
        | Mul               (* R*R->R *)
-       | K of Val.v        (* X -> Y *)
+       | K of V.v          (* X -> Y *)
        | FProd of f * f    (*A*B->C*D*)
        | Dup               (* X->X*X *)
        | Id                (* X -> X *)
@@ -101,7 +240,7 @@ fun pp e =
       | Prj i => "pi" ^ Int.toString i
       | Add => "(+)"
       | Mul => "(*)"
-      | K v => Val.pp v
+      | K v => V.pp v
       | FProd(f,g) => "(" ^ pp f ^ " x " ^ pp g ^ ")"
       | Dub => "dup"
 
@@ -128,18 +267,18 @@ fun opt e =
     end
 
 structure DSL = struct
-val op x = FProd
-val op + = Add
-val op * = Mul
-val op o = Comp
-val sin = Sin
-val cos = Cos
-val exp = Exp
-val ln = Ln
-val pow = Pow
-val ~ = Neg
-val dup = Dup
-val id = Id
+  val op x = FProd
+  val op + = Add
+  val op * = Mul
+  val op o = Comp
+  val sin = Sin
+  val cos = Cos
+  val exp = Exp
+  val ln = Ln
+  val pow = Pow
+  val ~ = Neg
+  val dup = Dup
+  val id = Id
 end
 end (* Fun *)
 
@@ -149,23 +288,23 @@ signature LIN = sig
   type lin
 
   (* Constructors *)
-  val lin    : string * (v -> v) -> lin
-  val prj    : int -> lin
-  val zero   : lin
-  val id     : lin
-  val oplus  : lin * lin -> lin
-  val comp   : lin * lin -> lin
-  val curryL : bin * v -> lin
-  val curryR : bin * v -> lin
+  val lin   : string * (v -> v) -> lin
+  val prj   : int -> lin
+  val zero  : lin
+  val id    : lin
+  val oplus : lin * lin -> lin
+  val comp  : lin * lin -> lin
+  val curL  : bin * v -> lin
+  val curR  : bin * v -> lin
 
-  val mulR   : bin
+  val mulR  : bin
 
-  val pp     : lin -> string
-  val eval   : lin -> v -> v
+  val pp    : lin -> string
+  val eval  : lin -> v -> v
 end
 
-structure Lin :> LIN where type v = Val.v = struct
-type v = Val.v
+functor Lin(V:VAL) :> LIN where type v = V.v = struct
+type v = V.v
 type bin = string * (v -> v)
 datatype lin = Lin of string * (v -> v)
              | Prj of int
@@ -173,8 +312,8 @@ datatype lin = Lin of string * (v -> v)
              | Id
              | Oplus of lin * lin
              | Comp of lin * lin
-             | CurryL of bin * v
-             | CurryR of bin * v
+             | CurL of bin * v
+             | CurR of bin * v
 
 val lin = Lin
 val prj = Prj
@@ -182,8 +321,8 @@ val zero = Zero
 val id = Id
 val oplus = Oplus
 val comp = Comp
-val curryL = CurryL
-val curryR = CurryR
+val curL = CurL
+val curR = CurR
 
 fun pp e =
     case e of
@@ -195,36 +334,35 @@ fun pp e =
       | Id => "id"
       | Oplus(e1,e2) => "(" ^ pp e1 ^ " :+: " ^ pp e2 ^ ")"
       | Comp(e1,e2) => pp e1 ^ " :o: " ^ pp e2
-      | CurryL(("add",_),v) => "(" ^ Val.pp v ^ "+)"
-      | CurryL(("mul",_),v) => "(" ^ Val.pp v ^ "*)"
-      | CurryL((s,_),v) => "(" ^ Val.pp v ^ " " ^ s ^ ")"
-      | CurryR(("add",_),v) => "(+" ^ Val.pp v ^ ")"
-      | CurryR(("mul",_),v) => "(*" ^ Val.pp v ^ ")"
-      | CurryR((s,_),v) => "(" ^ s ^ " " ^ Val.pp v ^ ")"
+      | CurL(("add",_),v) => "(" ^ V.pp v ^ "+)"
+      | CurL(("mul",_),v) => "(" ^ V.pp v ^ "*)"
+      | CurL((s,_),v) => "(" ^ V.pp v ^ " " ^ s ^ ")"
+      | CurR(("add",_),v) => "(+" ^ V.pp v ^ ")"
+      | CurR(("mul",_),v) => "(*" ^ V.pp v ^ ")"
+      | CurR((s,_),v) => "(" ^ s ^ " " ^ V.pp v ^ ")"
 
 fun eval (e:lin) (x:v) : v =
     case e of
-        Zero => Val.R 0.0
+        Zero => V.R 0.0
       | Id => x
-      | Lin(s,f) => (f x handle X => (print ("Lin problem: " ^ s ^ "; x=" ^ Val.pp x ^ "\n"); raise X))
-      | Prj i => Val.prjI "eval projection error" i x
+      | Lin(s,f) => (f x handle X => (print ("Lin problem: " ^ s ^ "; x=" ^ V.pp x ^ "\n"); raise X))
+      | Prj i => V.prjI "eval projection error" i x
       | Oplus(f,g) =>
-        (case x of
-             Val.T[x,y] => Val.T[eval f x,eval g y]
-           | v => die ("eval.Oplus: expecting pair - got " ^ Val.pp v))
+        (case V.unT x of
+             SOME [x,y] => V.T[eval f x,eval g y]
+           | _ => die ("eval.Oplus: expecting pair - got " ^ V.pp x))
       | Comp(g,f) => eval g (eval f x)
-      | CurryL((s,f),v) => (f(Val.T[v,x]) handle X => (print ("CurryL problem: " ^ s ^ "; v=" ^
-                                                              Val.pp v ^ "; x=" ^ Val.pp x ^ "\n"); raise X))
-      | CurryR((s,f),v) => (f(Val.T[x,v]) handle X => (print ("CurryR problem: " ^ s ^ "; x=" ^
-                                                              Val.pp x ^ "; v=" ^ Val.pp v ^ "\n"); raise X))
+      | CurL((s,f),v) => (f(V.T[v,x]) handle X => (print ("CurL problem: " ^ s ^ "; v=" ^
+                                                            V.pp v ^ "; x=" ^ V.pp x ^ "\n"); raise X))
+      | CurR((s,f),v) => (f(V.T[x,v]) handle X => (print ("CurR problem: " ^ s ^ "; x=" ^
+                                                            V.pp x ^ "; v=" ^ V.pp v ^ "\n"); raise X))
 
-val mulR : bin = ("mul", Val.mul)
+val mulR : bin = ("mul", V.mul)
 end
 
-structure Diff = struct
-structure L = Lin
-structure F = Fun
-structure V = Val
+functor Diff(V:VAL) = struct
+structure F = Fun(V)
+structure L = Lin(V)
 type v = V.v
 fun diff (f:F.f) (x:v) : v * L.lin =
     case f of
@@ -239,17 +377,17 @@ fun diff (f:F.f) (x:v) : v * L.lin =
         in (h x, L.lin("add",h))
         end
       | F.Cos => (V.cos x,
-                  L.curryL (L.mulR,V.sin x))
+                  L.curL (L.mulR,V.sin x))
       | F.Sin => (V.sin x,
-                  L.curryL (L.mulR,V.neg (V.cos x)))
+                  L.curL (L.mulR,V.neg (V.cos x)))
       | F.Ln => (V.ln x,
-                 L.curryL (L.mulR,V.pow (~1) x))
+                 L.curL (L.mulR,V.pow (~1) x))
       | F.Exp => (V.exp x,
-                  L.curryL (L.mulR,V.exp x))
+                  L.curL (L.mulR,V.exp x))
       | F.Pow i => (V.pow i x,
-                    L.curryL (L.mulR,V.mul(V.T[V.R (real i),V.pow (i-1) x])))
+                    L.curL (L.mulR,V.mul(V.T[V.R (real i),V.pow (i-1) x])))
       | F.Neg => (V.neg x,
-                  L.curryL (L.mulR,V.neg x))
+                  L.curL (L.mulR,V.neg x))
       | F.Prj i =>
         let val h = V.prjI ("Prj" ^ Int.toString i) i
         in (h x, L.prj i)
@@ -266,14 +404,14 @@ fun diff (f:F.f) (x:v) : v * L.lin =
       | F.Mul =>
         (V.mul x,
          L.comp(L.lin ("add",V.add),
-                L.oplus(L.curryR(L.mulR,V.prjI "mul-R" 2 x),
-                        L.curryL(L.mulR,V.prjI "mul-L" 1 x))))
+                L.oplus(L.curR(L.mulR,V.prjI "mul-R" 2 x),
+                        L.curL(L.mulR,V.prjI "mul-L" 1 x))))
       | F.Id => (x, L.id)
 end
 
-structure Exp = struct
-structure F = Fun
-structure V = Val
+functor Exp(structure V:VAL
+            structure F:FUN
+            sharing type V.v = F.v) = struct
 type v = V.v
 datatype e =
          X of int
@@ -291,7 +429,7 @@ datatype e =
 fun pp e =
     case e of
         X i => "x" ^ Int.toString i
-      | C v => Val.pp v
+      | C v => V.pp v
       | Ln e => "ln(" ^ pp e ^ ")"
       | Exp e => "exp(" ^ pp e ^ ")"
       | Sin e => "sin(" ^ pp e ^ ")"
@@ -335,44 +473,84 @@ end
 end
   ;
 
-structure Ex = struct
-structure V = Val
+functor Ex0(V:VAL) : sig end = struct
+structure D = Diff(V)
+structure F = D.F
+structure E = Exp(structure V = V
+                  structure F = F)
+structure L = D.L
 fun try_ex {name, e, arg, d} =
-    let val () = print ("Trying example: " ^ name ^ "\n")
-        val () = print ("  e = " ^ Exp.pp e ^ "\n")
-        val f1 = Exp.trans e
-        val () = print ("  f_unopt = " ^ Fun.pp f1 ^ "\n")
-        val f = Fun.opt f1
-        val () = print ("  f = " ^ Fun.pp f ^ "\n")
-        val (r,l) = Diff.diff f arg
-        val () = print ("  f(" ^ Val.pp arg ^ ") = " ^ Val.pp r ^ "\n")
-        val () = print ("  f'(" ^ Val.pp arg ^ ") = " ^ Lin.pp l ^ "\n")
-        val r' = Lin.eval l d
-        val () = print ("  f'(...)(" ^ Val.pp d ^ ") = " ^ Val.pp r' ^ "\n")
+    let val () = print ("\nTrying example: " ^ name ^ "\n")
+        val () = print ("  e = " ^ E.pp e ^ "\n")
+        val f1 = E.trans e
+        val () = print ("  f_unopt = " ^ F.pp f1 ^ "\n")
+        val f = F.opt f1
+        val () = print ("  f = " ^ F.pp f ^ "\n")
+        val (r,l) = D.diff f arg
+        val () = print ("  f(" ^ V.pp arg ^ ") = " ^ V.pp r ^ "\n")
+        val () = print ("  f'(" ^ V.pp arg ^ ") = " ^ L.pp l ^ "\n")
+        val r' = L.eval l d
+        val () = print ("  f'(...)(" ^ V.pp d ^ ") = " ^ V.pp r' ^ "\n")
     in ()
     end
 
 fun try_fun {name, f, arg, d} =
-    let val () = print ("Trying fun example: " ^ name ^ "\n")
-        val () = print ("  f = " ^ Fun.pp f ^ "\n")
-        val (r,l) = Diff.diff f arg
-        val () = print ("  f(" ^ Val.pp arg ^ ") = " ^ Val.pp r ^ "\n")
-        val () = print ("  f'(" ^ Val.pp arg ^ ") = " ^ Lin.pp l ^ "\n")
-        val r' = Lin.eval l d
-        val () = print ("  f'(...)(" ^ Val.pp d ^ ") = " ^ Val.pp r' ^ "\n")
+    let val () = print ("\nTrying fun example: " ^ name ^ "\n")
+        val () = print ("  f = " ^ F.pp f ^ "\n")
+        val (r,l) = D.diff f arg
+        val () = print ("  f(" ^ V.pp arg ^ ") = " ^ V.pp r ^ "\n")
+        val () = print ("  f'(" ^ V.pp arg ^ ") = " ^ L.pp l ^ "\n")
+        val r' = L.eval l d
+        val () = print ("  f'(...)(" ^ V.pp d ^ ") = " ^ V.pp r' ^ "\n")
     in ()
     end
 
-local open Exp.DSL
+local open E.DSL
 in
 val () = try_ex {name="ex1", e=ln (sin x1), arg=V.T[V.R 3.0], d=V.T[V.R 1.0]}
 val () = try_ex {name="ex2", e=x1*x2, arg=V.T[V.R 3.0,V.R 1.0], d=V.T[V.R 1.0,V.R 0.0]}
 val () = try_ex {name="ex3", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.R 3.0,V.R 1.0], d=V.T[V.R 1.0,V.R 0.0]}
 end
 
-local open Fun.DSL
+local open F.DSL
       infix x nonfix + nonfix *
 in
 val () = try_fun {name="fun1", f=(id x ln) o dup o (+) o (cos x sin),arg=V.T[V.R 1.5,V.R 2.0],d=V.T[V.R 2.0,V.R 2.0]}
 end
+end
+
+structure Ex0_Val = Ex0(Val)
+
+structure Ex0_TermVal = Ex0(TermVal)
+
+structure Ex1 : sig end = struct
+structure V = TermVal
+structure D = Diff(V)
+structure F = D.F
+structure E = Exp(structure V = V
+                  structure F = F)
+structure L = D.L
+fun try_ex {name, e, arg, d} =
+    let val () = print ("\nTrying example: " ^ name ^ "\n")
+        val () = print ("  e = " ^ E.pp e ^ "\n")
+        val f1 = E.trans e
+        val () = print ("  f_unopt = " ^ F.pp f1 ^ "\n")
+        val f = F.opt f1
+        val () = print ("  f = " ^ F.pp f ^ "\n")
+        val (r,l) = D.diff f arg
+        val () = print ("  f(" ^ V.pp arg ^ ") = " ^ V.pp r ^ "\n")
+        val () = print ("  f'(" ^ V.pp arg ^ ") = " ^ L.pp l ^ "\n")
+        val r' = L.eval l d
+        val () = print ("  f'(" ^ V.pp arg ^ ")(" ^ V.pp d ^ ") = " ^ V.pp r' ^ "\n")
+        val () = print ("  f'_simpl(" ^ V.pp arg ^ ")(" ^ V.pp d ^ ") = " ^ V.pp (V.simpl r') ^ "\n")
+    in ()
+    end
+
+local open E.DSL
+in
+val () = try_ex {name="t1", e=ln (sin x1), arg=V.T[V.Var "x1"], d=V.T[V.R 1.0]}
+val () = try_ex {name="t2", e=x1*x2, arg=V.T[V.Var "x1",V.Var "x2"], d=V.T[V.R 1.0,V.R 0.0]}
+val () = try_ex {name="t3", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"], d=V.T[V.R 1.0,V.R 0.0]}
+end
+
 end
