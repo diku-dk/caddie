@@ -545,6 +545,7 @@ local open F.DSL
       infix x nonfix + nonfix *
 in
 val () = try_fun {name="fun1", f=(id x ln) o dup o (+) o (cos x sin),arg=V.T[V.Var "x1",V.Var "x2"],d=V.T[V.R 2.0,V.R 2.0]}
+                 (* f'((x1,x2)) = (id :+: (pow(~1)((cos(x1) + sin(x2)))* )) :o: dup :o: (+) :o: ((sin(x1)* ) :+: (~(cos(x2))* )) *)
 end
 
 end
