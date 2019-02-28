@@ -1,18 +1,31 @@
 (* Dynamically tagged version of combinatory differentiation interpretation (in SML)
  *
  * Todo:
- *  1) Evaluate Lin expressions
+ *  1) More examples
  *  2) Experiment with forward/reverse mode differences
- *  3) Instead of evaluating expressions, I believe we can build up
- *     expressions parameterised over the input variables (at least when
- *     we don't try to differentiate conditional expressions, recursion,
- *     and such...
  *
  * Questions:
  *  1) Can we somehow convert point-free notation to expressions with let-expressions?
  *)
 
 fun die s = (print ("Error: " ^ s ^ "\n"); raise Fail s)
+
+signature PRIM = sig
+  datatype uprim = Sin | Cos | Ln | Exp | Pow of int | Neg
+  val pp_uprim : uprim -> string
+end
+
+structure Prim :> PRIM = struct
+  datatype uprim = Sin | Cos | Ln | Exp | Pow of int | Neg
+  fun pp_uprim (p: uprim) : string =
+      case p of
+          Sin => "sin"
+        | Cos => "cos"
+        | Ln => "ln"
+        | Exp => "exp"
+        | Pow i => "pow(" ^ Int.toString i ^ ")"
+        | Neg => "~"
+end
 
 signature VAL = sig
   type v
@@ -24,13 +37,9 @@ signature VAL = sig
   val pp : v -> string
   val prjI : string -> int -> v -> v
   val add : v -> v
-  val sin : v -> v
-  val cos : v -> v
-  val ln  : v -> v
-  val exp : v -> v
-  val neg : v -> v
-  val pow : int -> v -> v
   val mul : v -> v
+  val uprim : Prim.uprim -> v -> v
+  val uprim_diff : Prim.uprim -> v -> v
 end
 
 structure Val :> VAL = struct
@@ -69,19 +78,29 @@ fun prjI (s:string) (i:int) : v -> v =
      | v => die ("type error prjI - expecting tuple (" ^ s ^ ") - got " ^ pp v)
 
 val add = liftP "add" (lift2R (op +))
-val sin = lift1R Math.sin
-val cos = lift1R Math.cos
-val ln = lift1R Math.ln
-val exp = lift1R Math.exp
-val neg = lift1R Real.~
-fun pow i = lift1R (fn x => Math.pow(x,real i))
 val mul = liftP "mul" (lift2R (op * ))
+fun uprim (p: Prim.uprim) : v -> v =
+    case p of
+        Prim.Sin => lift1R Math.sin
+      | Prim.Cos => lift1R Math.cos
+      | Prim.Ln => lift1R Math.ln
+      | Prim.Exp => lift1R Math.exp
+      | Prim.Neg => lift1R Real.~
+      | Prim.Pow i => lift1R (fn x => Math.pow(x,real i))
+fun uprim_diff (p: Prim.uprim) : v -> v =
+    case p of
+        Prim.Sin => lift1R (~ o Math.cos)
+      | Prim.Cos => lift1R Math.sin
+      | Prim.Ln => lift1R (fn x => Math.pow(x,~1.0))
+      | Prim.Exp => lift1R Math.exp
+      | Prim.Neg => lift1R Real.~
+      | Prim.Pow i => lift1R (fn x => real i * Math.pow(x,real(i-1)))
 end (* Val *)
 
 structure TermVal = struct
 type var = string
-datatype v = R of real | I of int | T of v list | Sin of v | Cos of v | Ln of v | Exp of v
-           | Neg of v | Mul of v*v | Add of v*v | Pow of int * v | Var of var
+datatype v = R of real | I of int | T of v list | Uprim of Prim.uprim * v
+           | Mul of v*v | Add of v*v | Var of var
 
 fun unT (T xs) = SOME xs
   | unT _ = NONE
@@ -91,12 +110,7 @@ fun pp v =
         R r => Real.toString r
       | I i => Int.toString i
       | T vs => "(" ^ String.concatWith "," (map pp vs) ^ ")"
-      | Sin v => "sin(" ^ pp v ^ ")"
-      | Cos v => "cos(" ^ pp v ^ ")"
-      | Ln v => "ln(" ^ pp v ^ ")"
-      | Exp v => "exp(" ^ pp v ^ ")"
-      | Pow(i,v) => "pow(" ^ Int.toString i ^ "," ^ pp v ^ ")"
-      | Neg v => "neg(" ^ pp v ^ ")"
+      | Uprim(p,v) => Prim.pp_uprim p ^ "(" ^ pp v ^ ")"
       | Add(v1,v2) => "(" ^ pp v1 ^ " + " ^ pp v2 ^ ")"
       | Mul(v1,v2) => "(" ^ pp v1 ^ " * " ^ pp v2 ^ ")"
       | Var v => v
@@ -115,12 +129,17 @@ fun mul v =
         SOME [v1,v2] => Mul(v1,v2)
       | _ => die ("type error mul - expecting pair - got " ^ pp v)
 
-val sin = Sin
-val cos = Cos
-val ln = Ln
-val exp = Exp
-val neg = Neg
-fun pow i v = Pow(i,v)
+fun uprim (p: Prim.uprim) : v -> v = fn v => Uprim(p,v)
+
+fun uprim_diff (p: Prim.uprim) (x:v) : v =
+    case p of
+        Prim.Sin => Uprim(Prim.Neg,Uprim(Prim.Cos,x))
+      | Prim.Cos => Uprim(Prim.Sin,x)
+      | Prim.Ln => Uprim(Prim.Pow(~1),x)
+      | Prim.Exp => Uprim(Prim.Exp,x)
+      | Prim.Neg => Uprim(Prim.Neg,x)
+      | Prim.Pow i => Mul(R (real i), Uprim(Prim.Pow(i-1),x))
+
 val var = Var
 
 local val t = ref 0
@@ -147,16 +166,13 @@ fun simpl0 v =
                       else Mul(simpl0 v,R r)
       | Mul(v1,v2) => Mul(simpl0 v1,simpl0 v2)
       | Add(v1,v2) => Add(simpl0 v1,simpl0 v2)
-      | Sin v => Sin (simpl0 v)
-      | Cos v => Cos (simpl0 v)
-      | Ln v => Ln (simpl0 v)
-      | Exp v => Exp (simpl0 v)
-      | Pow(1,v) => (tick(); simpl0 v)
-      | Pow(0,_) => (tick(); R 1.0)
-      | Pow(i,v) => Pow(i,simpl0 v)
-      | Neg(R r) => (tick(); R (~r))
-      | Neg(I i) => (tick(); I (~i))
-      | Neg v => Neg (simpl0 v)
+      | Uprim (Prim.Pow 1,v) => (tick(); simpl0 v)
+      | Uprim (Prim.Pow 0,_) => (tick(); R 1.0)
+      | Uprim (Prim.Pow i,v) => Uprim(Prim.Pow i, simpl0 v)
+      | Uprim (Prim.Neg, R r) => (tick(); R (~r))
+      | Uprim (Prim.Neg, I i) => (tick(); I (~i))
+      | Uprim (Prim.Neg, v) => Uprim(Prim.Neg, simpl0 v)
+      | Uprim (p,v) => Uprim(p, simpl0 v)
       | T vs => T (map simpl0 vs)
       | R _ => v
       | I _ => v
@@ -175,20 +191,15 @@ end (* TermVal *)
 signature FUN = sig
   type v
   datatype f =
-         Comp of f * f     (* X -> Y *)
-       | Ln                (* R -> R *)
-       | Exp               (* R -> R *)
-       | Sin               (* R -> R *)
-       | Cos               (* R -> R *)
-       | Pow of int        (* R -> R *)
-       | Neg               (* R -> R *)
-       | Prj of int        (* X1*...*Xn->Xi *)
-       | Add               (* R*R->R *)
-       | Mul               (* R*R->R *)
-       | K of v            (* X -> Y *)
-       | FProd of f * f    (*A*B->C*D*)
-       | Dup               (* X->X*X *)
-       | Id                (* X -> X *)
+         Comp of f * f       (* X -> Y *)
+       | Prj of int          (* X1*...*Xn->Xi *)
+       | Add                 (* R*R->R *)
+       | Mul                 (* R*R->R *)
+       | K of v              (* X -> Y *)
+       | FProd of f * f      (*A*B->C*D*)
+       | Dup                 (* X->X*X *)
+       | Id                  (* X -> X *)
+       | Uprim of Prim.uprim
 
   val pp  : f -> string
   val opt : f -> f
@@ -212,37 +223,27 @@ functor Fun(V:VAL) :> FUN where type v = V.v = struct
 
 type v = V.v
 datatype f =
-         Comp of f * f     (* X -> Y *)
-       | Ln                (* R -> R *)
-       | Exp               (* R -> R *)
-       | Sin               (* R -> R *)
-       | Cos               (* R -> R *)
-       | Pow of int        (* R -> R *)
-       | Neg               (* R -> R *)
-       | Prj of int        (* X1*...*Xn->Xi *)
-       | Add               (* R*R->R *)
-       | Mul               (* R*R->R *)
-       | K of V.v          (* X -> Y *)
-       | FProd of f * f    (*A*B->C*D*)
-       | Dup               (* X->X*X *)
-       | Id                (* X -> X *)
+         Comp of f * f       (* X -> Y *)
+       | Prj of int          (* X1*...*Xn->Xi *)
+       | Add                 (* R*R->R *)
+       | Mul                 (* R*R->R *)
+       | K of V.v            (* X -> Y *)
+       | FProd of f * f      (*A*B->C*D*)
+       | Dup                 (* X->X*X *)
+       | Id                  (* X -> X *)
+       | Uprim of Prim.uprim
 
 fun pp e =
     case e of
         Comp(f,g) => "(" ^ pp f ^ " o " ^ pp g ^ ")"
       | Id => "id"
-      | Ln => "ln"
-      | Exp => "exp"
-      | Sin => "sin"
-      | Cos => "cos"
-      | Pow i => "pow(" ^ Int.toString i ^ ")"
-      | Neg => "~"
       | Prj i => "pi" ^ Int.toString i
       | Add => "(+)"
       | Mul => "(*)"
       | K v => V.pp v
       | FProd(f,g) => "(" ^ pp f ^ " x " ^ pp g ^ ")"
-      | Dub => "dup"
+      | Dup => "dup"
+      | Uprim p => Prim.pp_uprim p
 
 local val t = ref 0
 in fun tick_reset() = t := 0
@@ -271,14 +272,14 @@ structure DSL = struct
   val op + = Add
   val op * = Mul
   val op o = Comp
-  val sin = Sin
-  val cos = Cos
-  val exp = Exp
-  val ln = Ln
-  val pow = Pow
-  val ~ = Neg
   val dup = Dup
   val id = Id
+  val sin = Uprim Prim.Sin
+  val cos = Uprim Prim.Cos
+  val exp = Uprim Prim.Exp
+  val ln = Uprim Prim.Ln
+  fun pow i = Uprim (Prim.Pow i)
+  val ~ = Uprim Prim.Neg
 end
 end (* Fun *)
 
@@ -353,9 +354,9 @@ fun eval (e:lin) (x:v) : v =
            | _ => die ("eval.Oplus: expecting pair - got " ^ V.pp x))
       | Comp(g,f) => eval g (eval f x)
       | CurL((s,f),v) => (f(V.T[v,x]) handle X => (print ("CurL problem: " ^ s ^ "; v=" ^
-                                                            V.pp v ^ "; x=" ^ V.pp x ^ "\n"); raise X))
+                                                          V.pp v ^ "; x=" ^ V.pp x ^ "\n"); raise X))
       | CurR((s,f),v) => (f(V.T[x,v]) handle X => (print ("CurR problem: " ^ s ^ "; x=" ^
-                                                            V.pp x ^ "; v=" ^ V.pp v ^ "\n"); raise X))
+                                                          V.pp x ^ "; v=" ^ V.pp v ^ "\n"); raise X))
 
 val mulR : bin = ("mul", V.mul)
 end
@@ -376,18 +377,8 @@ fun diff (f:F.f) (x:v) : v * L.lin =
         let val h = V.add
         in (h x, L.lin("add",h))
         end
-      | F.Cos => (V.cos x,
-                  L.curL (L.mulR,V.sin x))
-      | F.Sin => (V.sin x,
-                  L.curL (L.mulR,V.neg (V.cos x)))
-      | F.Ln => (V.ln x,
-                 L.curL (L.mulR,V.pow (~1) x))
-      | F.Exp => (V.exp x,
-                  L.curL (L.mulR,V.exp x))
-      | F.Pow i => (V.pow i x,
-                    L.curL (L.mulR,V.mul(V.T[V.R (real i),V.pow (i-1) x])))
-      | F.Neg => (V.neg x,
-                  L.curL (L.mulR,V.neg x))
+      | F.Uprim p => (V.uprim p x,
+                      L.curL (L.mulR,V.uprim_diff p x))
       | F.Prj i =>
         let val h = V.prjI ("Prj" ^ Int.toString i) i
         in (h x, L.prj i)
@@ -416,12 +407,7 @@ type v = V.v
 datatype e =
          X of int
        | C of v
-       | Ln of e
-       | Exp of e
-       | Sin of e
-       | Cos of e
-       | Neg of e
-       | Pow of int * e
+       | Uprim of Prim.uprim * e
        | Mul of e * e
        | Add of e * e
        | Pair of e * e
@@ -430,12 +416,7 @@ fun pp e =
     case e of
         X i => "x" ^ Int.toString i
       | C v => V.pp v
-      | Ln e => "ln(" ^ pp e ^ ")"
-      | Exp e => "exp(" ^ pp e ^ ")"
-      | Sin e => "sin(" ^ pp e ^ ")"
-      | Cos e => "cos(" ^ pp e ^ ")"
-      | Neg e => "neg(" ^ pp e ^ ")"
-      | Pow(i,e) => "pow(" ^ Int.toString i ^ "," ^ pp e ^ ")"
+      | Uprim(p,e) => Prim.pp_uprim p ^ "(" ^ pp e ^ ")"
       | Mul(e1,e2) => "(" ^ pp e1 ^ "*" ^ pp e2 ^ ")"
       | Add(e1,e2) => "(" ^ pp e1 ^ "+" ^ pp e2 ^ ")"
       | Pair(e1,e2) => "(" ^ pp e1 ^ "," ^ pp e2 ^ ")"
@@ -447,23 +428,18 @@ fun trans e =
     case e of
         X i => F.Prj i
       | C v => F.K v
-      | Ln e => F.Comp (F.Ln, trans e)
-      | Exp e => F.Comp (F.Exp, trans e)
-      | Sin e => F.Comp (F.Sin, trans e)
-      | Cos e => F.Comp (F.Cos, trans e)
-      | Neg e => F.Comp (F.Neg, trans e)
-      | Pow(i,e) => F.Comp(F.Pow i,trans e)
+      | Uprim(p,e) => F.Comp (F.Uprim p, trans e)
       | Mul(e1,e2) => hat F.Mul (trans e1,trans e2)
       | Add(e1,e2) => hat F.Add (trans e1,trans e2)
       | Pair(e1,e2) => lrangle (trans e1,trans e2)
 
 structure DSL = struct
-  val ln : e -> e = Ln
-  val sin : e -> e = Sin
-  val cos : e -> e = Cos
-  val exo : e -> e = Exp
-  fun pow (i: int) : e -> e = fn e => Pow(i,e)
-  val ~ : e -> e = Neg
+  val ln : e -> e = fn e => Uprim(Prim.Ln,e)
+  val sin : e -> e = fn e => Uprim(Prim.Sin,e)
+  val cos : e -> e = fn e => Uprim(Prim.Cos,e)
+  val exp : e -> e = fn e => Uprim(Prim.Exp,e)
+  fun pow (i: int) : e -> e = fn e => Uprim(Prim.Pow i,e)
+  val ~ : e -> e = fn e => Uprim(Prim.Neg,e)
   val op + : e * e -> e = Add
   val op * : e * e -> e = Mul
   val op - : e * e -> e  = fn (x,y) => x + (~y)
@@ -546,11 +522,29 @@ fun try_ex {name, e, arg, d} =
     in ()
     end
 
+fun try_fun {name, f, arg, d} =
+    let val () = print ("\nTrying example: " ^ name ^ "\n")
+        val () = print ("  f = " ^ F.pp f ^ "\n")
+        val (r,l) = D.diff f arg
+        val () = print ("  f(" ^ V.pp arg ^ ") = " ^ V.pp r ^ "\n")
+        val () = print ("  f'(" ^ V.pp arg ^ ") = " ^ L.pp l ^ "\n")
+        val r' = L.eval l d
+        val () = print ("  f'(" ^ V.pp arg ^ ")(" ^ V.pp d ^ ") = " ^ V.pp r' ^ "\n")
+        val () = print ("  f'_simpl(" ^ V.pp arg ^ ")(" ^ V.pp d ^ ") = " ^ V.pp (V.simpl r') ^ "\n")
+    in ()
+    end
+
 local open E.DSL
 in
 val () = try_ex {name="t1", e=ln (sin x1), arg=V.T[V.Var "x1"], d=V.T[V.R 1.0]}
 val () = try_ex {name="t2", e=x1*x2, arg=V.T[V.Var "x1",V.Var "x2"], d=V.T[V.R 1.0,V.R 0.0]}
 val () = try_ex {name="t3", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"], d=V.T[V.R 1.0,V.R 0.0]}
+end
+
+local open F.DSL
+      infix x nonfix + nonfix *
+in
+val () = try_fun {name="fun1", f=(id x ln) o dup o (+) o (cos x sin),arg=V.T[V.Var "x1",V.Var "x2"],d=V.T[V.R 2.0,V.R 2.0]}
 end
 
 end
