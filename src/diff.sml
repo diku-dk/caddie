@@ -252,6 +252,7 @@ fun add v =
       | _ => die ("type error add - expecting pair - got " ^ pp v)
 
 fun mul (R a,R b) = R (a*b)
+  | mul (T vs1,T vs2) = T (map mul (ListPair.zip (vs1,vs2)))
   | mul (v1,v2) = Bilin(Prim.Mul,v1,v2)
 
 fun cprod3 (T [R a1,R a2,R a3], T [R b1,R b2,R b3]) : v =
@@ -287,6 +288,7 @@ fun bilin0 p : v * v -> v =
 
 fun uprim (p: Prim.uprim) : v -> v =
     fn R r => R (Prim.uprim p r)
+     | T vs => T (map (uprim p) vs)
      | v => Uprim (p,v)
 
 val var = Var
@@ -304,12 +306,14 @@ fun simpl0 v =
                       else Add(R r,simpl0 v)
       | Add(v,R r) => if Real.==(r,0.0) then (tick(); simpl0 v)
                       else Add(simpl0 v,R r)
+      | Add(T vs1,T vs2) => (tick(); T(map (fn (v1,v2) => simpl0 (Add(v1,v2))) (ListPair.zip(vs1,vs2))))
       | Add(v1,v2) => Add(simpl0 v1,simpl0 v2)
       | Uprim (Prim.Pow r,v) =>
         if Real.==(r,1.0) then (tick(); simpl0 v)
         else if Real.==(r,0.0) then (tick(); R 1.0)
         else Uprim(Prim.Pow r, simpl0 v)
       | Uprim (Prim.Neg, R r) => (tick(); R (~r))
+      | Uprim (Prim.Neg, T vs) => (tick(); T (map (fn v => simpl0(Uprim(Prim.Neg, v))) vs))
       | Uprim (Prim.Neg, v) => Uprim(Prim.Neg, simpl0 v)
       | Uprim (p,v) => Uprim(p, simpl0 v)
       | T vs => T (map simpl0 vs)
@@ -583,7 +587,7 @@ fun pp e =
 val ret = V.ret
 infix >>=
 val op >>= = V.>>=
-val letBind = V.letBind
+val letBind = (*V.letBind*) ret
 
 fun eval (e:lin) (x:v) : v V.M =
     case e of
@@ -791,7 +795,9 @@ fun try_fun {name, f, arg, d} =
         val (r,l) = D.diff f arg
         val () = print ("  " ^ name ^ "(" ^ V.pp arg ^ ") = " ^ V.pp r ^ "\n")
         val () = print ("  " ^ name ^ "'(" ^ V.pp arg ^ ") = " ^ L.pp l ^ "\n")
+        val () = print "Now evaluating\n"
         val rM = L.eval l d
+        val () = print "Now simplifying\n"
         val rM = V.simpl rM
         val () = print ("  " ^ name ^ "'(" ^ V.pp arg ^ ")(" ^ V.pp d ^ ") =\n" ^
                         V.ppM "    " V.pp rM ^ "\n")
@@ -866,6 +872,49 @@ val distort =
 val () = try_fun {name="distort", f=distort,
                   arg=V.T[V.T[V.R 2.0,V.R 3.0],V.T[V.R 8.0,V.R 9.0]],
                   d=V.T[V.T[V.R 2.0,V.R 3.0],V.T[V.R 8.0,V.R 9.0]]}
+
+fun lrangle (f,g) = F.Comp(F.FProd(f,g),F.Dup)
+
+val project (* -> R^2 *) =
+    let val pi_r = F.Prj 1    (* R^3 *)
+        val pi_C = F.Prj 2    (* R^3 *)
+        val pi_f = F.Prj 3    (* R   *)
+        val pi_x0 = F.Prj 4   (* R^2 *)
+        val pi_k = F.Prj 5    (* R^2 *)
+        val pi_X = F.Prj 6    (* R^3 *)
+    in pi_f vscale (distort o lrangle (pi_k, p2e o rodriguez o lrangle (pi_r, pi_X + (~ o pi_C))))
+       + pi_x0
+    end
+
+val r = V.T[V.R 2.0, V.R 3.0, V.R 8.0]
+val C = V.T[V.R 1.0, V.R 2.0, V.R 6.0]
+val f = V.R 3.0
+val x0 = V.T[V.R 1.0, V.R 2.0]
+val k = V.T[V.R 2.0, V.R 3.0]
+val X = V.T[V.R 6.0, V.R 9.0, V.R 2.0]
+
+val () = try_fun {name="project", f=project,
+                  arg=V.T[r,C,f,x0,k,X],
+                  d=V.T[r,C,f,x0,k,X]}
+
+val residual (* -> R^2 *) =
+    let val pi_w = F.Prj 1    (* R *)
+        val pi_m = F.Prj 2    (* R^2 *)
+        val pi_P = F.Prj 3    (* R^3*R^3*R*R^2*R^2*R^3 *)
+    in lrangle (pi_w vscale (pi_m + ~ o project o pi_P), K1 + ~ o pow 2.0 o pi_w)
+    end
+
+val P = V.T[r,C,f,x0,k,X]
+val dP = V.T[r,C,f,x0,k,X]
+val w = V.R 1.2
+val m = V.T[V.R 1.0,V.R 2.0]
+
+val dw = V.R 0.2
+val dm = V.T[V.R 0.3,V.R 1.0]
+
+val () = try_fun {name="residual", f=residual,
+                  arg=V.T[w,m,P],
+                  d=V.T[dw,dm,dP]}
 
 end
 
