@@ -1,0 +1,17 @@
+local
+  $(SML_LIB)/basis/basis.mlb
+  prim.sig
+  prim.sml
+  val.sig
+  val.sml
+  term_val.sml
+  fun.sig
+  fun.sml
+  lin.sig
+  lin.sml
+  diff.sig
+  diff.sml
+  exp.sml
+in
+  ad.sml
+end

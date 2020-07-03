@@ -1,16 +1,11 @@
 
-.PHONY: all
-all: mosml
+MLKIT ?= mlkit
 
-.PHONY: mosml
-mosml:
-	mosml -P full diff.sml
+all: ad.exe
+	./ad.exe
 
-.PHONY: mlkit
-mlkit:
-	mlkit -o diff.exe diff.sml
-	./diff.exe
+ad.exe: ad.mlb *.sig *.sml
+	$(MLKIT) -o $@ $<
 
-.PHONY: clean
 clean:
-	rm -rf MLB *~ run
+	rm -rf *~ MLB *.exe run
