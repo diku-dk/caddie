@@ -1,6 +1,7 @@
 functor Exp(structure V:VAL
             structure F:FUN
-            sharing type V.v = F.v) = struct
+            sharing type V.v = F.v) : EXP where type f = F.f = struct
+type f = F.f
 type v = V.v
 datatype e =
          X of int

@@ -37,7 +37,7 @@ fun pp e =
 val ret = V.ret
 infix >>=
 val op >>= = V.>>=
-val letBind = (*V.letBind*) ret
+val letBind = V.letBind
 
 fun eval (e:lin) (x:v) : v V.M =
     case e of

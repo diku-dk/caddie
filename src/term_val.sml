@@ -173,8 +173,8 @@ fun bilin (p,v:v) : v =
 
 fun uprim_diff (p: Prim.uprim) (x:v) : v =
     case p of
-        Prim.Sin => uprim Prim.Neg (uprim Prim.Cos x)
-      | Prim.Cos => uprim Prim.Sin x
+        Prim.Sin => uprim Prim.Cos x
+      | Prim.Cos => uprim Prim.Neg (uprim Prim.Sin x)
       | Prim.Ln => uprim (Prim.Pow ~1.0) x
       | Prim.Exp => uprim Prim.Exp x
       | Prim.Neg => uprim Prim.Neg x

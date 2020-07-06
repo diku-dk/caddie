@@ -1,11 +1,8 @@
+.PHONY: test
+test:
+	$(MAKE) -C tests all
 
-MLKIT ?= mlkit
-
-all: ad.exe
-	./ad.exe
-
-ad.exe: ad.mlb *.sig *.sml
-	$(MLKIT) -o $@ $<
-
+.PHONY: clean
 clean:
 	rm -rf *~ MLB *.exe run
+	$(MAKE) -C tests clean

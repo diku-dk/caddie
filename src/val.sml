@@ -41,8 +41,8 @@ fun uprim (p: Prim.uprim) : v -> v =
 
 fun uprim_diff (p: Prim.uprim) : v -> v =
     case p of
-        Prim.Sin => lift1R (~ o Math.cos)
-      | Prim.Cos => lift1R Math.sin
+        Prim.Sin => lift1R Math.cos
+      | Prim.Cos => lift1R (~ o Math.sin)
       | Prim.Ln => lift1R (fn x => Math.pow(x,~1.0))
       | Prim.Exp => lift1R Math.exp
       | Prim.Neg => lift1R Real.~

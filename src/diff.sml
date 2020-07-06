@@ -5,7 +5,7 @@ type v = V.v
 
 fun diff (f:F.f) (x:v) : v * L.lin =
     case f of
-        F.Comp(g,f) =>
+        F.Comp(g,f) =>                   (* g o f *)
         let val (fx,f'x) = diff f x
             val (gfx,g'fx) = diff g fx
         in (gfx,L.comp(g'fx,f'x))
@@ -14,6 +14,11 @@ fun diff (f:F.f) (x:v) : v * L.lin =
       | F.Add =>
         let val h = V.add
         in (h x, L.lin("add",h))
+        end
+      | F.Uprim Prim.Neg =>
+        let val h = V.uprim Prim.Neg
+        in (h x,
+            L.lin("neg",h))
         end
       | F.Uprim p => (V.uprim p x,
                       L.curL (Prim.Mul,V.uprim_diff p x))
