@@ -68,6 +68,7 @@ structure DSL = struct
   val op + : e * e -> e = Add
   val op * : e * e -> e = fn (x,y) => Bilin(Prim.Mul,x,y)
   val op - : e * e -> e  = fn (x,y) => x + (~y)
+  val const : v -> e = C
   val x1 : e = X 1
   val x2 : e = X 2
 end

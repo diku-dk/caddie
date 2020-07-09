@@ -15,4 +15,5 @@ signature LIN = sig
 
   val pp    : lin -> string
   val eval  : lin -> v -> v M
+  val seq   : lin -> lin list
 end

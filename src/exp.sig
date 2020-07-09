@@ -1,4 +1,5 @@
 signature EXP = sig
+  type v
   type e
   type f
   val pp : e -> string
@@ -15,6 +16,7 @@ signature EXP = sig
     val + : e * e -> e
     val * : e * e -> e
     val - : e * e -> e
+    val const : v -> e
     val x1 : e
     val x2 : e
   end
