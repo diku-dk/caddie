@@ -11,25 +11,12 @@ fun diff (f:F.f) (x:v) : v * L.lin =
         in (gfx,L.comp(g'fx,f'x))
         end
       | F.K y => (y, L.zero)
-      | F.Add =>
-        let val h = V.add
-        in (h x, L.lin("add",h))
-        end
-      | F.Uprim Prim.Neg =>
-        let val h = V.uprim Prim.Neg
-        in (h x,
-            L.lin("neg",h))
-        end
+      | F.Add => (V.add x, L.add)
+      | F.Uprim Prim.Neg => (V.uprim Prim.Neg x, L.neg)
       | F.Uprim p => (V.uprim p x,
                       L.curL (Prim.Mul,V.uprim_diff p x))
-      | F.Prj i =>
-        let val h = V.prjI ("Prj" ^ Int.toString i) i
-        in (h x, L.prj i)
-        end
-      | F.Dup =>
-        let val h = fn v => V.T[v,v]
-        in (h x, L.lin("dup",h))
-        end
+      | F.Prj i => (V.prjI ("Prj" ^ Int.toString i) i x, L.prj i)
+      | F.Dup => (V.T[x,x], L.dup)
       | F.FProd(f,g) =>
         let val (fx,f'x) = diff f (V.prjI "fprod-x" 1 x)
             val (gy,g'y) = diff g (V.prjI "fprod-y" 2 x)
@@ -37,8 +24,44 @@ fun diff (f:F.f) (x:v) : v * L.lin =
         end
       | F.Bilin p =>
         (V.bilin (p,x),
-         L.comp(L.lin ("add",V.add),
+         L.comp(L.add,
                 L.oplus(L.curR(p,V.prjI "mul-R" 2 x),
                         L.curL(p,V.prjI "mul-L" 1 x))))
       | F.Id => (x, L.id)
+
+fun transp (e:L.lin) : L.lin = e
+
+fun diffr (f:F.f) (x:v) : v * L.lin =
+    case f of
+        F.Comp(g,f) =>                                           (*ok*)
+        let val (fx,f'x) = diffr f x
+            val (gfx,g'fx) = diffr g fx
+        in (gfx,L.comp(f'x,g'fx))
+        end
+      | F.K y => (y, L.zero)                                     (*ok*)
+      | F.Add => (V.add x, L.dup)                                (*ok*)
+      | F.Uprim Prim.Neg => (V.uprim Prim.Neg x, L.neg)          (*ok*)
+      | F.Uprim p => (V.uprim p x,
+                      L.curL (Prim.Mul,V.uprim_diff p x))
+      | F.Prj i =>                                               (*ok*)
+        let val l = case i of
+                        1 => L.oplus(L.id,L.zero)
+                      | 2 => L.oplus(L.zero,L.id)
+                      | _ => die ("non-supported projection "^Int.toString i)
+        in (V.prjI ("Prj" ^ Int.toString i) i x,
+            l)
+        end
+      | F.Dup => (V.T[x,x], L.add)                               (*ok*)
+      | F.FProd(f,g) =>
+        let val (fx,f'x) = diff f (V.prjI "fprod-x" 1 x)
+            val (gy,g'y) = diff g (V.prjI "fprod-y" 2 x)
+        in (V.T[fx,gy],L.oplus(f'x,g'y))
+        end
+      | F.Bilin p =>                                             (*ok*)
+        (V.bilin (p,x),
+         L.oplus(transp(L.curR(p,V.prjI "bilin-R" 2 x)),
+                 transp(L.curL(p,V.prjI "bilin-L" 1 x))))
+      | F.Id => (x, L.id)
+
+
 end

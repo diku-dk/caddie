@@ -22,6 +22,10 @@ val comp = Comp
 val curL = CurL
 val curR = CurR
 
+val add = lin("add",V.add)
+val dup = lin("dup",fn v => V.T[v,v])
+val neg = lin("neg",V.uprim Prim.Neg)
+
 fun pp e =
     case e of
         Lin("add",_) => "(+)"
@@ -63,12 +67,5 @@ fun eval (e:lin) (x:v) : v V.M =
                                                   V.pp x ^ "; v=" ^ V.pp v ^ "\n");
                                            raise X))
 
-fun seq (e:lin) : lin list =
-    let fun s e a =
-            case e of
-                Comp(g,f) => s g (s f a)
-              | _ => e::a
-    in s e nil
-    end
 
 end

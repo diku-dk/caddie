@@ -10,10 +10,14 @@ signature LIN = sig
   val id    : lin
   val oplus : lin * lin -> lin
   val comp  : lin * lin -> lin
-  val curL  : Prim.bilin * v -> lin
-  val curR  : Prim.bilin * v -> lin
+  val curL  : Prim.bilin * v -> lin   (* ( v * ) *)
+  val curR  : Prim.bilin * v -> lin   (* ( * v ) *)
+
+  (* some linear primitives *)
+  val add   : lin
+  val dup   : lin
+  val neg   : lin
 
   val pp    : lin -> string
   val eval  : lin -> v -> v M
-  val seq   : lin -> lin list
 end

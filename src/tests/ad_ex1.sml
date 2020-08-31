@@ -17,8 +17,6 @@ fun try_ex {name, e, arg, dx, dy} =
         val rM = V.simpl rM
         val () = print ("  f' " ^ V.pp arg ^ " " ^ V.pp dx ^ " =\n" ^
                         V.ppM "    " V.pp rM ^ "\n")
-        val () = print ("Length(l) = " ^ Int.toString (length (L.seq l)) ^ "\n")
-        val () = print "\n"
     in ()
     end
 
