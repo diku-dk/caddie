@@ -3,74 +3,81 @@
 ****
 Trying example: t1
   e = ln(sin(x1))
-  f_unopt = (ln o (sin o pi1))
-  f = (ln o (sin o pi1))
-  f (x1) = ln(sin(x1))
-  f' (x1) = (pow(~1.0)(sin(x1)) *) :o: (cos(x1) *) :o: pi1
+  f_unopt = (ln o (sin o pi_1/1))
+  f = (ln o (sin o pi_1/1))
+  f (x1) = (ln(sin(x1)))
+  f' (x1) = ((pow(~1.0)(sin(x1))) *) :o: ((cos(x1)) *) :o: id
   f' (x1) (1.0) =
-    let v1 = cos(x1)
-    let v2 = (pow(~1.0)(sin(x1)) * v1)
-    in v2
+    ((pow(~1.0)(sin(x1)) * cos(x1)))
 Trying example: t2
   e = (x1*x2)
-  f_unopt = ((*) o ((pi1 x pi2) o dup))
+  f_unopt = ((*) o ((pi_1/2 x pi_2/2) o dup))
   f = (*)
   f (x1,x2) = (x1 * x2)
   f' (x1,x2) = (+) :o: ((* x2) :+: (x1 *))
   f' (x1,x2) (1.0,0.0) =
     x2
-Trying example: t3
+Trying example: t3_1
   e = ((ln(x1)+(x1*x2))+~(sin(x2)))
-  f_unopt = ((+) o ((((+) o (((ln o pi1) x ((*) o ((pi1 x pi2) o dup))) o dup)) x (~ o (sin o pi2))) o dup))
-  f = ((+) o ((((+) o (((ln o pi1) x (*)) o dup)) x (~ o (sin o pi2))) o dup))
+  f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
   f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
-  f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi1 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi2) :o: dup
+  f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
   f' (x1,x2) (1.0,0.0) =
-    let v6 = pow(~1.0)(x1)
-    let v10 = (v6 + x2)
-    in v10
+    let v4 = pow(~1.0)(x1)
+    let v8 = (v4 + x2)
+    in v8
+Trying example: t3_2
+  e = ((ln(x1)+(x1*x2))+~(sin(x2)))
+  f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
+  f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
+  f' (x1,x2) (0.0,1.0) =
+    let v17 = cos(x2)
+    let v18 = ~(v17)
+    let v19 = (x1 + v18)
+    in v19
 Trying example: t4
   e = ((ln(x1)+(x1*x2))+~(sin(x2)))
-  f_unopt = ((+) o ((((+) o (((ln o pi1) x ((*) o ((pi1 x pi2) o dup))) o dup)) x (~ o (sin o pi2))) o dup))
-  f = ((+) o ((((+) o (((ln o pi1) x (*)) o dup)) x (~ o (sin o pi2))) o dup))
+  f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
   f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
-  f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi1 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi2) :o: dup
+  f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
   f' (x1,x2) (dx1,dx2) =
-    let v14 = (pow(~1.0)(x1) * dx1)
-    let v15 = (dx1 * x2)
-    let v16 = (x1 * dx2)
-    let v17 = (v15 + v16)
-    let v18 = (v14 + v17)
-    let v19 = (cos(x2) * dx2)
-    let v20 = ~(v19)
-    let v21 = (v18 + v20)
-    in v21
+    let v20 = (pow(~1.0)(x1) * dx1)
+    let v21 = (dx1 * x2)
+    let v22 = (x1 * dx2)
+    let v23 = (v21 + v22)
+    let v24 = (v20 + v23)
+    let v25 = (cos(x2) * dx2)
+    let v26 = ~(v25)
+    let v27 = (v24 + v26)
+    in v27
 Trying example: t4'
   e = (ln(x1)+((x1*x2)+~(sin(x2))))
-  f_unopt = ((+) o (((ln o pi1) x ((+) o ((((*) o ((pi1 x pi2) o dup)) x (~ o (sin o pi2))) o dup))) o dup))
-  f = ((+) o (((ln o pi1) x ((+) o (((*) x (~ o (sin o pi2))) o dup))) o dup))
+  f_unopt = ((+) o (((ln o pi_1/2) x ((+) o ((((*) o ((pi_1/2 x pi_2/2) o dup)) x (~ o (sin o pi_2/2))) o dup))) o dup))
+  f = ((+) o (((ln o pi_1/2) x ((+) o (((*) x (~ o (sin o pi_2/2))) o dup))) o dup))
   f (x1,x2) = (ln(x1) + ((x1 * x2) + ~(sin(x2))))
-  f' (x1,x2) = (+) :o: ((pow(~1.0)(x1) *) :o: pi1 :+: (+) :o: ((+) :o: ((* x2) :+: (x1 *)) :+: neg :o: (cos(x2) *) :o: pi2) :o: dup) :o: dup
+  f' (x1,x2) = (+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((+) :o: ((* x2) :+: (x1 *)) :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup) :o: dup
   f' (x1,x2) (dx1,dx2) =
-    let v22 = (pow(~1.0)(x1) * dx1)
-    let v23 = (dx1 * x2)
-    let v24 = (x1 * dx2)
-    let v25 = (v23 + v24)
-    let v26 = (cos(x2) * dx2)
-    let v27 = ~(v26)
-    let v28 = (v25 + v27)
-    let v29 = (v22 + v28)
-    in v29
+    let v28 = (pow(~1.0)(x1) * dx1)
+    let v29 = (dx1 * x2)
+    let v30 = (x1 * dx2)
+    let v31 = (v29 + v30)
+    let v32 = (cos(x2) * dx2)
+    let v33 = ~(v32)
+    let v34 = (v31 + v33)
+    let v35 = (v28 + v34)
+    in v35
 Trying example: t5
   e = ~(sin(x1))
-  f_unopt = (~ o (sin o pi1))
-  f = (~ o (sin o pi1))
-  f (x1) = ~(sin(x1))
-  f' (x1) = neg :o: (cos(x1) *) :o: pi1
+  f_unopt = (~ o (sin o pi_1/1))
+  f = (~ o (sin o pi_1/1))
+  f (x1) = (~(sin(x1)))
+  f' (x1) = neg :o: ((cos(x1)) *) :o: id
   f' (x1) (dx1) =
-    let v30 = (cos(x1) * dx1)
-    let v31 = ~(v30)
-    in v31
+    (~((cos(x1) * dx1)))
 Trying example: fun1
   fun1 = ((((id x ln) o dup) o (+)) o (cos x sin))
   fun1 (x1,x2) = ((cos(x1) + sin(x2)),ln((cos(x1) + sin(x2))))
@@ -78,11 +85,11 @@ Trying example: fun1
 Now evaluating
 Now simplifying
   fun1' (x1,x2) (2.0,2.0) =
-    let v32 = (~(sin(x1)) * 2.0)
-    let v33 = (cos(x2) * 2.0)
-    let v34 = (v32 + v33)
-    let v35 = (pow(~1.0)((cos(x1) + sin(x2))) * v34)
-    in (v34,v35)
+    let v36 = (~(sin(x1)) * 2.0)
+    let v37 = (cos(x2) * 2.0)
+    let v38 = (v36 + v37)
+    let v39 = (pow(~1.0)((cos(x1) + sin(x2))) * v38)
+    in (v38,v39)
 
 Trying example: fun2
   fun2 = ln

@@ -43,12 +43,14 @@ fun try_fun {name, f, arg, d, expected} =
 
 local open E.DSL
 in
-val () = try_ex {name="ex1", e=ln (sin x1), arg=V.T[V.R 3.0], d=V.T[V.R 1.0],
+val () = try_ex {name="ex1", e=ln (sin x1), arg=V.R 3.0, d=V.R 1.0,
                  expected=SOME(V.R ~1.95814462961,V.R ~7.01525255143)}
 val () = try_ex {name="ex2", e=x1*x2, arg=V.T[V.R 3.0,V.R 1.0], d=V.T[V.R 1.0,V.R 0.0],
                  expected=SOME(V.R 3.0,V.R 1.0)}
 val () = try_ex {name="ex3", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.R 3.0,V.R 1.0], d=V.T[V.R 1.0,V.R 0.0],
                  expected=SOME(V.R 3.25714130386, V.R 1.33333333333)}
+val () = try_ex {name="ex4", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.R 3.0,V.R 1.0], d=V.T[V.R 0.0,V.R 1.0],
+                 expected=SOME(V.R 3.25714130386, V.R 2.45969769413)}
 end
 
 local open F.DSL

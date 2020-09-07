@@ -23,28 +23,42 @@ fun pp e =
 fun lrangle (f,g) = F.Comp(F.FProd(f,g),F.Dup)
 fun hat opr (f,g) = F.Comp(opr,lrangle(f,g))
 
-fun trans e =
+fun trans0 n e =
     case e of
-        X i => F.Prj i
+        X i => F.Prj (n,i)
       | C v => F.K v
-      | Uprim(p,e) => F.Comp (F.Uprim p, trans e)
-      | Bilin(p,e1,e2) => hat (F.Bilin p) (trans e1,trans e2)
-      | Add(e1,e2) => hat F.Add (trans e1,trans e2)
-      | Pair(e1,e2) => lrangle (trans e1,trans e2)
+      | Uprim(p,e) => F.Comp (F.Uprim p, trans0 n e)
+      | Bilin(p,e1,e2) => hat (F.Bilin p) (trans0 n e1,trans0 n e2)
+      | Add(e1,e2) => hat F.Add (trans0 n e1,trans0 n e2)
+      | Pair(e1,e2) => lrangle (trans0 n e1,trans0 n e2)
+
+fun max_x m e =
+    case e of
+        X i => if i > m then i else m
+      | C v => m
+      | Uprim(p,e) => max_x m e
+      | Bilin(p,e1,e2) => max_x (max_x m e1) e2
+      | Add(e1,e2) => max_x (max_x m e1) e2
+      | Pair(e1,e2) => max_x (max_x m e1) e2
+
+fun trans e =
+    let val n = max_x 0 e
+    in trans0 n e
+    end
 
 fun snart f =
     let fun s f (e:e) =
             case f of
                 F.K v => C v
-              | F.Prj i => (case e of
-                                X ~1 => X i
-                              | Pair(a,b) =>
-                                if i=1 then a
-                                else if i=2 then b
-                                else die ("snart.Pair.Prj(" ^ Int.toString i ^ ")")
-                              | _ =>  die ("snart.Prj(" ^ Int.toString i ^ ")"))
-              | F.Add => Add(s (F.Prj 1) e,
-                             s (F.Prj 2) e)
+              | F.Prj(_,i) => (case e of
+                                   X ~1 => X i
+                                 | Pair(a,b) =>
+                                   if i=1 then a
+                                   else if i=2 then b
+                                   else die ("snart.Pair.Prj(" ^ Int.toString i ^ ")")
+                                 | _ =>  die ("snart.Prj(" ^ Int.toString i ^ ")"))
+              | F.Add => Add(s (F.Prj(2,1)) e,
+                             s (F.Prj(2,2)) e)
               | F.Comp(f,g) => s f (s g e)
               | F.FProd(f,g) =>
                 (case e of
@@ -54,7 +68,7 @@ fun snart f =
               | F.Id => e
               | F.Dup => Pair(e,e)
               | F.Uprim p => Uprim(p,e)
-              | F.Bilin p => Bilin(p,s (F.Prj 1) e,s (F.Prj 2) e)
+              | F.Bilin p => Bilin(p,s (F.Prj(2,1)) e,s (F.Prj(2,2)) e)
     in s f (X ~1)
     end
 

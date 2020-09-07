@@ -2,7 +2,7 @@ signature FUN = sig
   type v
   datatype f =
          Comp of f * f       (* X -> Y *)
-       | Prj of int          (* X1*...*Xn->Xi *)
+       | Prj of int * int    (* X1*...*Xn->Xi ; Prj(n,i) *)
        | Add                 (* R*R->R *)
        | K of v              (* X -> Y *)
        | FProd of f * f      (*A*B->C*D*)

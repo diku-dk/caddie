@@ -5,7 +5,7 @@ type v = V.v
 type 'a M = 'a V.M
 
 datatype lin = Lin of string * (v -> v)
-             | Prj of int
+             | Prj of int * int           (* (dim, idx) *)
              | Zero
              | Id
              | Oplus of lin * lin
@@ -14,7 +14,7 @@ datatype lin = Lin of string * (v -> v)
              | CurR of Prim.bilin * v
 
 val lin = Lin
-val prj = Prj
+fun prj d i = Prj (d,i)
 val zero = Zero
 val id = Id
 val oplus = Oplus
@@ -30,7 +30,7 @@ fun pp e =
     case e of
         Lin("add",_) => "(+)"
       | Lin(s,_) => s
-      | Prj i => "pi" ^ Int.toString i
+      | Prj (d,i) => "pi_" ^ Int.toString i ^ "/" ^ Int.toString d
       | Zero => "zero"
       | Id => "id"
       | Oplus(e1,e2) => "(" ^ pp e1 ^ " :+: " ^ pp e2 ^ ")"
@@ -48,7 +48,7 @@ fun eval (e:lin) (x:v) : v V.M =
         Zero => ret (V.R 0.0)
       | Id => ret x
       | Lin(s,f) => (letBind (f x) handle X => (print ("Lin problem: " ^ s ^ "; x=" ^ V.pp x ^ "\n"); raise X))
-      | Prj i => ret (V.prjI "eval projection error" i x)
+      | Prj (d,i) => ret (V.prjI ("eval projection error (" ^ Int.toString d ^ ")") i x)
       | Oplus(f,g) =>
         (case V.unT x of
              SOME [x,y] => eval f x >>= (fn v1 =>
@@ -67,5 +67,32 @@ fun eval (e:lin) (x:v) : v V.M =
                                                   V.pp x ^ "; v=" ^ V.pp v ^ "\n");
                                            raise X))
 
+fun transp (e:lin) : lin =
+    case e of
+        Zero => Zero
+      | Id => Id
+      | Comp(g,f) => Comp(transp f,transp g)
+      | Oplus(f,g) => Oplus(transp f,transp g)
+      | Lin("dup",_) => add
+      | Lin("add",_) => dup
+      | Lin("neg",_) => e
+      | Lin(s,f) => die ("transpose of linear function not supported: "
+                         ^ s)
+      | Prj (2,1) => Comp(Oplus(Id,Zero),dup)
+      | Prj (2,2) => Comp(Oplus(Zero,Id),dup)
+      | Prj (d,i) => die ("transpose of projection not supported: "
+                          ^ Int.toString i ^ "/" ^ Int.toString d)
+      | CurL(Prim.Mul,v) => e
+      | CurR(Prim.Mul,v) => e
+      | CurL(Prim.Dprod,v) => CurR(Prim.Mul,v)
+      | CurR(Prim.Dprod,v) => CurR(Prim.Mul,v)
+      | CurL(Prim.Sprod,v) => e
+      | CurR(Prim.Sprod,v) => CurR(Prim.Dprod,v)
+      | CurL(p,v) =>
+        die ("transp.CurL problem: " ^
+             Prim.pp_bilin p ^ "; v=" ^ V.pp v)
+      | CurR(p,v) =>
+        die ("transp.CurR problem: " ^
+             Prim.pp_bilin p ^ "; v=" ^ V.pp v)
 
 end

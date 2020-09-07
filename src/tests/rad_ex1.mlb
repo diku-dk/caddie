@@ -1,0 +1,5 @@
+local
+  $(SML_LIB)/basis/basis.mlb
+  ../ad.mlb
+in rad_ex1.sml
+end

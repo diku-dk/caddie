@@ -1,4 +1,4 @@
-RESFILES_ALL=ad_ex0.res ad_ex1.res ba.res
+RESFILES_ALL=ad_ex0.res ad_ex1.res ba.res rad_ex0.res rad_ex1.res
 
 MLKIT ?= mlkit
 

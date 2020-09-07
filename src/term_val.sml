@@ -24,7 +24,7 @@ fun pp v =
 
 fun prjI (s:string) (i:int) : v -> v =
     fn T xs => (List.nth(xs,i-1) handle _ => die (s ^ " index error"))
-     | v => die ("type error prjI - expecting tuple (" ^ s ^ ") - got " ^ pp v)
+     | v => die ("type error prjI(" ^ Int.toString i ^ ") - expecting tuple (" ^ s ^ ") - got " ^ pp v)
 
 exception Stop
 fun add v =

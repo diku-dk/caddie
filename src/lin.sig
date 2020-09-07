@@ -5,7 +5,7 @@ signature LIN = sig
 
   (* Constructors *)
   val lin   : string * (v -> v) -> lin
-  val prj   : int -> lin
+  val prj   : int -> int -> lin   (* prj dim idx *)
   val zero  : lin
   val id    : lin
   val oplus : lin * lin -> lin
@@ -20,4 +20,6 @@ signature LIN = sig
 
   val pp    : lin -> string
   val eval  : lin -> v -> v M
+
+  val transp : lin -> lin
 end

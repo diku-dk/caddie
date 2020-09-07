@@ -3,7 +3,7 @@ structure Ad = AD(TermVal)
 open Ad
 structure V = TermVal
 
-fun try_ex {name, e, arg, dx, dy} =
+fun try_ex {name, e, arg, dx} =
     let val () = print ("Trying example: " ^ name ^ "\n")
         val () = print ("  e = " ^ E.pp e ^ "\n")
         val f1 = E.trans e
@@ -38,18 +38,17 @@ fun try_fun {name, f, arg, d} =
 
 local open E.DSL
 in
-val () = try_ex {name="t1", e=ln (sin x1), arg=V.T[V.Var "x1"], dx=V.T[V.R 1.0],
-                 dy=V.T[V.Var "dy1"]}
-val () = try_ex {name="t2", e=x1*x2, arg=V.T[V.Var "x1",V.Var "x2"], dx=V.T[V.R 1.0,V.R 0.0],
-                 dy=V.T[V.Var "dy1"]}
-val () = try_ex {name="t3", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"],
-                 dx=V.T[V.R 1.0,V.R 0.0], dy=V.T[V.Var "dy1"]}
+val () = try_ex {name="t1", e=ln (sin x1), arg=V.T[V.Var "x1"], dx=V.T[V.R 1.0]}
+val () = try_ex {name="t2", e=x1*x2, arg=V.T[V.Var "x1",V.Var "x2"], dx=V.T[V.R 1.0,V.R 0.0]}
+val () = try_ex {name="t3_1", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"],
+                 dx=V.T[V.R 1.0,V.R 0.0]}
+val () = try_ex {name="t3_2", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"],
+                 dx=V.T[V.R 0.0,V.R 1.0]}
 val () = try_ex {name="t4", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"],
-                 dx=V.T[V.Var "dx1",V.Var "dx2"],dy=V.T[V.Var "dy1"]}
+                 dx=V.T[V.Var "dx1",V.Var "dx2"]}
 val () = try_ex {name="t4'", e=ln x1 + (x1*x2 - sin x2), arg=V.T[V.Var "x1",V.Var "x2"],
-                 dx=V.T[V.Var "dx1",V.Var "dx2"],dy=V.T[V.Var "dy1"]}
-val () = try_ex {name="t5", e= ~ (sin x1), arg=V.T[V.Var "x1"], dx=V.T[V.Var "dx1"],
-                 dy=V.T[V.Var "dy1"]}
+                 dx=V.T[V.Var "dx1",V.Var "dx2"]}
+val () = try_ex {name="t5", e= ~ (sin x1), arg=V.T[V.Var "x1"], dx=V.T[V.Var "dx1"]}
 end
 
 local open F.DSL

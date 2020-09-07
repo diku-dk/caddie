@@ -43,8 +43,8 @@ val () = try_fun {name="nrm", f=nrm,arg=V.T[V.R 2.0,V.R 3.0,V.R 5.0],
                   d=V.T[V.R 1.0,V.R 0.0,V.R 0.0]}
 
 val rodriguez =
-    let val pi_r = F.Prj 1
-        val pi_X = F.Prj 2
+    let val pi_r = F.Prj (2,1)
+        val pi_X = F.Prj (2,2)
     in ((cos o norm o pi_r) vscale pi_X) +
        ((sin o norm o pi_r) vscale ((nrm o pi_r) cross pi_X)) +
        ((K1 + (~ o cos o norm o pi_r)) vscale (((nrm o pi_r) dot (nrm o pi_r)) vscale pi_X))
@@ -56,9 +56,9 @@ val () = try_fun {name="rodriguez", f=rodriguez,arg=V.T[V.Var "r",V.Var "X"],d=V
 val () = try_fun {name="rodriguez", f=rodriguez,arg=V.T[r,X],d=V.T[r,X]}
 
 val p2e =
-    let val pi_1 = F.Prj 1
-        val pi_2 = F.Prj 2
-        val pi_3 = F.Prj 3
+    let val pi_1 = F.Prj (3,1)
+        val pi_2 = F.Prj (3,2)
+        val pi_3 = F.Prj (3,3)
     in (pow ~1.0 o pi_3) vscale ((pi_1 x pi_2) o dup)
     end
 
@@ -66,10 +66,10 @@ val arg = V.T[V.R 6.0, V.R 12.0, V.R 3.0]
 val () = try_fun {name="p2e", f=p2e,arg=arg,d=V.T[V.R 1.0,V.R 0.0,V.R 0.0]}
 
 val distort =
-    let val pi_1 = F.Prj 1
-        val pi_2 = F.Prj 2
-        val pi_k = F.Prj 1
-        val pi_X = F.Prj 2
+    let val pi_1 = F.Prj (2,1)
+        val pi_2 = F.Prj (2,2)
+        val pi_k = F.Prj (2,1)
+        val pi_X = F.Prj (2,2)
     in ((K1 + (Norm2Sq o pi_X) vscale (pi_1 o pi_k)) +
        ((pow 2.0 o Norm2Sq o pi_X) vscale (pi_2 o pi_k))) vscale pi_k
     end
@@ -80,12 +80,12 @@ val () = try_fun {name="distort", f=distort,
 fun lrangle (f,g) = F.Comp(F.FProd(f,g),F.Dup)
 
 val project (* -> R^2 *) =
-    let val pi_r = F.Prj 1    (* R^3 *)
-        val pi_C = F.Prj 2    (* R^3 *)
-        val pi_f = F.Prj 3    (* R   *)
-        val pi_x0 = F.Prj 4   (* R^2 *)
-        val pi_k = F.Prj 5    (* R^2 *)
-        val pi_X = F.Prj 6    (* R^3 *)
+    let val pi_r = F.Prj (6,1)    (* R^3 *)
+        val pi_C = F.Prj (6,2)    (* R^3 *)
+        val pi_f = F.Prj (6,3)    (* R   *)
+        val pi_x0 = F.Prj (6,4)   (* R^2 *)
+        val pi_k = F.Prj (6,5)    (* R^2 *)
+        val pi_X = F.Prj (6,6)    (* R^3 *)
     in pi_f vscale (distort o lrangle (pi_k, p2e o rodriguez o lrangle (pi_r, pi_X + (~ o pi_C))))
        + pi_x0
     end
@@ -102,9 +102,9 @@ val () = try_fun {name="project", f=project,
                   d=V.T[r,C,f,x0,k,X]}
 
 val residual (* -> R^2 *) =
-    let val pi_w = F.Prj 1    (* R *)
-        val pi_m = F.Prj 2    (* R^2 *)
-        val pi_P = F.Prj 3    (* R^3*R^3*R*R^2*R^2*R^3 *)
+    let val pi_w = F.Prj (3,1)    (* R *)
+        val pi_m = F.Prj (3,2)    (* R^2 *)
+        val pi_P = F.Prj (3,3)    (* R^3*R^3*R*R^2*R^2*R^3 *)
     in lrangle (pi_w vscale (pi_m + ~ o project o pi_P), K1 + ~ o pow 2.0 o pi_w)
     end
 

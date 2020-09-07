@@ -3,17 +3,17 @@
 ****
 Trying ex: ex1
   e = ln(sin(x1))
-  f_unopt = (ln o (sin o pi1))
-  f = (ln o (sin o pi1))
+  f_unopt = (ln o (sin o pi_1/1))
+  f = (ln o (sin o pi_1/1))
   e (from f) = ln(sin(x1))
-  f((3.0)) = ~1.95814462961: OK
-  f'((3.0)) = (7.08616739574 *) :o: (~0.9899924966 *) :o: pi1
-  f'((3.0))((1.0)) =
+  f(3.0) = ~1.95814462961: OK
+  f'(3.0) = (7.08616739574 *) :o: (~0.9899924966 *) :o: id
+  f'(3.0)(1.0) =
     ~7.01525255143: OK
 
 Trying ex: ex2
   e = (x1*x2)
-  f_unopt = ((*) o ((pi1 x pi2) o dup))
+  f_unopt = ((*) o ((pi_1/2 x pi_2/2) o dup))
   f = (*)
   e (from f) = (x1*x2)
   f((3.0,1.0)) = 3.0: OK
@@ -23,13 +23,23 @@ Trying ex: ex2
 
 Trying ex: ex3
   e = ((ln(x1)+(x1*x2))+~(sin(x2)))
-  f_unopt = ((+) o ((((+) o (((ln o pi1) x ((*) o ((pi1 x pi2) o dup))) o dup)) x (~ o (sin o pi2))) o dup))
-  f = ((+) o ((((+) o (((ln o pi1) x (*)) o dup)) x (~ o (sin o pi2))) o dup))
+  f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
   e (from f) = ((ln(x1)+(x1*x2))+~(sin(x2)))
   f((3.0,1.0)) = 3.25714130386: OK
-  f'((3.0,1.0)) = (+) :o: ((+) :o: ((0.333333333333 *) :o: pi1 :+: (+) :o: ((* 1.0) :+: (3.0 *))) :o: dup :+: neg :o: (0.540302305868 *) :o: pi2) :o: dup
+  f'((3.0,1.0)) = (+) :o: ((+) :o: ((0.333333333333 *) :o: pi_1/2 :+: (+) :o: ((* 1.0) :+: (3.0 *))) :o: dup :+: neg :o: (0.540302305868 *) :o: pi_2/2) :o: dup
   f'((3.0,1.0))((1.0,0.0)) =
     1.33333333333: OK
+
+Trying ex: ex4
+  e = ((ln(x1)+(x1*x2))+~(sin(x2)))
+  f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  e (from f) = ((ln(x1)+(x1*x2))+~(sin(x2)))
+  f((3.0,1.0)) = 3.25714130386: OK
+  f'((3.0,1.0)) = (+) :o: ((+) :o: ((0.333333333333 *) :o: pi_1/2 :+: (+) :o: ((* 1.0) :+: (3.0 *))) :o: dup :+: neg :o: (0.540302305868 *) :o: pi_2/2) :o: dup
+  f'((3.0,1.0))((0.0,1.0)) =
+    2.45969769413: OK
 
 Trying fun example: fun1
   f = ((((id x ln) o dup) o (+)) o (cos x sin))
@@ -40,17 +50,17 @@ Trying fun example: fun1
 
 Trying ex: ex1
   e = ln(sin(x1))
-  f_unopt = (ln o (sin o pi1))
-  f = (ln o (sin o pi1))
+  f_unopt = (ln o (sin o pi_1/1))
+  f = (ln o (sin o pi_1/1))
   e (from f) = ln(sin(x1))
-  f((3.0)) = ~1.95814462961: OK
-  f'((3.0)) = (7.08616739574 *) :o: (~0.9899924966 *) :o: pi1
-  f'((3.0))((1.0)) =
+  f(3.0) = ~1.95814462961: OK
+  f'(3.0) = (7.08616739574 *) :o: (~0.9899924966 *) :o: id
+  f'(3.0)(1.0) =
     ~7.01525255143: OK
 
 Trying ex: ex2
   e = (x1*x2)
-  f_unopt = ((*) o ((pi1 x pi2) o dup))
+  f_unopt = ((*) o ((pi_1/2 x pi_2/2) o dup))
   f = (*)
   e (from f) = (x1*x2)
   f((3.0,1.0)) = 3.0: OK
@@ -60,13 +70,23 @@ Trying ex: ex2
 
 Trying ex: ex3
   e = ((ln(x1)+(x1*x2))+~(sin(x2)))
-  f_unopt = ((+) o ((((+) o (((ln o pi1) x ((*) o ((pi1 x pi2) o dup))) o dup)) x (~ o (sin o pi2))) o dup))
-  f = ((+) o ((((+) o (((ln o pi1) x (*)) o dup)) x (~ o (sin o pi2))) o dup))
+  f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
   e (from f) = ((ln(x1)+(x1*x2))+~(sin(x2)))
   f((3.0,1.0)) = 3.25714130386: OK
-  f'((3.0,1.0)) = (+) :o: ((+) :o: ((0.333333333333 *) :o: pi1 :+: (+) :o: ((* 1.0) :+: (3.0 *))) :o: dup :+: neg :o: (0.540302305868 *) :o: pi2) :o: dup
+  f'((3.0,1.0)) = (+) :o: ((+) :o: ((0.333333333333 *) :o: pi_1/2 :+: (+) :o: ((* 1.0) :+: (3.0 *))) :o: dup :+: neg :o: (0.540302305868 *) :o: pi_2/2) :o: dup
   f'((3.0,1.0))((1.0,0.0)) =
     1.33333333333: OK
+
+Trying ex: ex4
+  e = ((ln(x1)+(x1*x2))+~(sin(x2)))
+  f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  e (from f) = ((ln(x1)+(x1*x2))+~(sin(x2)))
+  f((3.0,1.0)) = 3.25714130386: OK
+  f'((3.0,1.0)) = (+) :o: ((+) :o: ((0.333333333333 *) :o: pi_1/2 :+: (+) :o: ((* 1.0) :+: (3.0 *))) :o: dup :+: neg :o: (0.540302305868 *) :o: pi_2/2) :o: dup
+  f'((3.0,1.0))((0.0,1.0)) =
+    2.45969769413: OK
 
 Trying fun example: fun1
   f = ((((id x ln) o dup) o (+)) o (cos x sin))

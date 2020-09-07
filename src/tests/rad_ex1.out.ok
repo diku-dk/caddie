@@ -1,0 +1,42 @@
+****
+**** Reverse AD Ex1
+****
+Trying example: ex1
+  e = ln(sin(x1))
+  f_unopt = (ln o (sin o pi_1/1))
+  f = (ln o (sin o pi_1/1))
+  f x1 = ln(sin(x1))
+  f_nabla x1 = id :o: (cos(x1) *) :o: (pow(~1.0)(sin(x1)) *)
+Now evaluating
+Now simplifying
+  f_nabla x1 1.0 =
+    let v1 = pow(~1.0)(sin(x1))
+    let v2 = (cos(x1) * v1)
+    in v2
+
+Trying example: ex2
+  e = (x1*x2)
+  f_unopt = ((*) o ((pi_1/2 x pi_2/2) o dup))
+  f = (*)
+  f (x1,x2) = (x1 * x2)
+  f_nabla (x1,x2) = ((* x2) :+: (x1 *)) :o: dup
+Now evaluating
+Now simplifying
+  f_nabla (x1,x2) 1.0 =
+    (x2,x1)
+
+Trying example: ex3
+  e = ((ln(x1)+(x1*x2))+~(sin(x2)))
+  f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
+  f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
+  f_nabla (x1,x2) = (+) :o: ((+) :o: ((id :+: zero) :o: dup :o: (pow(~1.0)(x1) *) :+: ((* x2) :+: (x1 *)) :o: dup) :o: dup :+: (zero :+: id) :o: dup :o: (cos(x2) *) :o: neg) :o: dup
+Now evaluating
+Now simplifying
+  f_nabla (x1,x2) 1.0 =
+    let v5 = pow(~1.0)(x1)
+    let v8 = ((v5 + x2),x1)
+    let v9 = (cos(x2) * ~1.0)
+    let v10 = (v8 + (0.0,v9))
+    in v10
+
