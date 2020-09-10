@@ -41,12 +41,13 @@ fun pp e =
 val ret = V.ret
 infix >>=
 val op >>= = V.>>=
-val letBind = V.letBind
+val letBind = ret (*V.letBind*)
 
 fun eval (e:lin) (x:v) : v V.M =
     case e of
         Zero => ret (V.R 0.0)
       | Id => ret x
+      | Lin("dup",f) => V.letBind x >>= (ret o f)
       | Lin(s,f) => (letBind (f x) handle X => (print ("Lin problem: " ^ s ^ "; x=" ^ V.pp x ^ "\n"); raise X))
       | Prj (d,i) => ret (V.prjI ("eval projection error (" ^ Int.toString d ^ ")") i x)
       | Oplus(f,g) =>

@@ -1,6 +1,10 @@
 functor Diff(V:VAL) : DIFF where type v = V.v = struct
+
 structure F = Fun(V)
 structure L = Lin(V)
+
+fun die s = (print ("Error (Diff): " ^ s ^ "\n"); raise Fail s)
+
 type v = V.v
 
 fun diff (f:F.f) (x:v) : v * L.lin =
@@ -30,6 +34,41 @@ fun diff (f:F.f) (x:v) : v * L.lin =
                         L.curL(p,V.prjI "mul-L" 1 x))))
       | F.Id => (x, L.id)
 
+type 'a M = 'a V.M
+val op >>= = V.>>= infix >>=
+val ret = V.ret
+
+fun diffM (f:F.f) (x:v) : (v * L.lin) M =
+    case f of
+        F.Comp(g,f) =>                   (* g o f *)
+        diffM f x >>= (fn (fx,f'x) =>
+        diffM g fx >>= (fn (gfx,g'fx) =>
+        ret (gfx,L.comp(g'fx,f'x))))
+      | F.K y => ret (y, L.zero)
+      | F.Add => ret (V.add x, L.add)
+      | F.Uprim Prim.Neg => ret (V.uprim Prim.Neg x, L.neg)
+      | F.Uprim p => ret (V.uprim p x,
+                          L.curL (Prim.Mul,V.uprim_diff p x))
+      | F.Prj (1,i) => ret (x,L.id)                                  (*ok*)
+      | F.Prj (d,i) => ret (V.prjI ("Prj" ^ Int.toString i ^ "/" ^ Int.toString d) i x, L.prj d i)
+      | F.Dup => V.letBind x >>= (fn x => ret (V.T[x,x], L.dup))
+      | F.FProd(f,g) =>
+        diffM f (V.prjI "fprod-x" 1 x) >>= (fn (fx,f'x) =>
+        diffM g (V.prjI "fprod-y" 2 x) >>= (fn (gy,g'y) =>
+        ret (V.T[fx,gy],L.oplus(f'x,g'y))))
+      | F.Bilin p =>
+        (case V.unT x of
+             SOME [x1,x2] =>
+             V.letBind x1 >>= (fn x1 =>
+             V.letBind x2 >>= (fn x2 =>
+             ret (V.bilin (p,V.T[x1,x2]),
+                  L.comp(L.add,
+                         L.oplus(L.curR(p,x2),
+                                 L.curL(p,x1))))))
+           | _ => die "diffM: expecting pair in Bilin")
+      | F.Id => ret (x, L.id)
+
+(*
 fun diffr (f:F.f) (x:v) : v * L.lin =
     case f of
         F.Comp(g,f) =>                                           (*ok*)
@@ -65,6 +104,6 @@ fun diffr (f:F.f) (x:v) : v * L.lin =
                         L.transp(L.curL(p,V.prjI "bilin-L" 1 x))),
                 L.dup))
       | F.Id => (x, L.id)
-
+*)
 
 end

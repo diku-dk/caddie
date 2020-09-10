@@ -3,6 +3,7 @@ signature DIFF = sig
   structure L : LIN where type v = v
   structure F : FUN where type v = v
 
-  val diff  : F.f -> v -> v * L.lin      (* forward *)
-  val diffr : F.f -> v -> v * L.lin      (* reverse *)
+  type 'a M
+  val diff  : F.f -> v -> v * L.lin
+  val diffM : F.f -> v -> (v * L.lin) M
 end

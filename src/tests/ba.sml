@@ -3,18 +3,26 @@ structure Ad = AD(TermVal)
 open Ad
 structure V = TermVal
 
+infix >>= val op >>= = V.>>=
+val ret = V.ret
+
+fun ppM pp M = V.ppM "    " pp M
+
 fun try_fun {name, f, arg, d} =
     let val () = print ("\nTrying example: " ^ name ^ "\n")
         val () = print ("  " ^ name ^ " = " ^ F.pp f ^ "\n")
-        val (r,l) = D.diff f arg
-        val () = print ("  " ^ name ^ " " ^ V.pp arg ^ " = " ^ V.pp r ^ "\n")
-        val () = print ("  " ^ name ^ "' " ^ V.pp arg ^ " = " ^ L.pp l ^ "\n")
-        val () = print "Now evaluating\n"
-        val rM = L.eval l d
-        val () = print "Now simplifying\n"
-        val rM = V.simpl rM
-        val () = print ("  " ^ name ^ "' " ^ V.pp arg ^ " " ^ V.pp d ^ " =\n" ^
-                        V.ppM "    " V.pp rM ^ "\n")
+
+        val () = print "  Differentiating:\n"
+        val M = D.diffM f arg
+        val () = print ("  f " ^ V.pp arg ^ " =\n" ^ ppM (fn (r,_) => V.pp r) M ^ "\n")
+
+        val fM = M >>= (fn (_,l) => ret l)
+        val () = print ("  f' " ^ V.pp arg ^ " =\n" ^ ppM L.pp fM ^ "\n")
+
+        val fM = fM >>= (fn l => L.eval l d)
+        val fM = V.simpl fM
+        val () = print ("  f' " ^ V.pp arg ^ " " ^ V.pp d ^ " =\n" ^
+                        ppM V.pp fM ^ "\n\n")
     in ()
     end
 

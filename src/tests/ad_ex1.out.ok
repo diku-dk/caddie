@@ -24,9 +24,7 @@ Trying example: t3_1
   f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
   f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
   f' (x1,x2) (1.0,0.0) =
-    let v4 = pow(~1.0)(x1)
-    let v8 = (v4 + x2)
-    in v8
+    (pow(~1.0)(x1) + x2)
 Trying example: t3_2
   e = ((ln(x1)+(x1*x2))+~(sin(x2)))
   f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
@@ -34,10 +32,7 @@ Trying example: t3_2
   f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
   f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
   f' (x1,x2) (0.0,1.0) =
-    let v17 = cos(x2)
-    let v18 = ~(v17)
-    let v19 = (x1 + v18)
-    in v19
+    (x1 + ~(cos(x2)))
 Trying example: t4
   e = ((ln(x1)+(x1*x2))+~(sin(x2)))
   f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
@@ -45,15 +40,7 @@ Trying example: t4
   f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
   f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
   f' (x1,x2) (dx1,dx2) =
-    let v20 = (pow(~1.0)(x1) * dx1)
-    let v21 = (dx1 * x2)
-    let v22 = (x1 * dx2)
-    let v23 = (v21 + v22)
-    let v24 = (v20 + v23)
-    let v25 = (cos(x2) * dx2)
-    let v26 = ~(v25)
-    let v27 = (v24 + v26)
-    in v27
+    (((pow(~1.0)(x1) * dx1) + ((dx1 * x2) + (x1 * dx2))) + ~((cos(x2) * dx2)))
 Trying example: t4'
   e = (ln(x1)+((x1*x2)+~(sin(x2))))
   f_unopt = ((+) o (((ln o pi_1/2) x ((+) o ((((*) o ((pi_1/2 x pi_2/2) o dup)) x (~ o (sin o pi_2/2))) o dup))) o dup))
@@ -61,15 +48,7 @@ Trying example: t4'
   f (x1,x2) = (ln(x1) + ((x1 * x2) + ~(sin(x2))))
   f' (x1,x2) = (+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((+) :o: ((* x2) :+: (x1 *)) :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup) :o: dup
   f' (x1,x2) (dx1,dx2) =
-    let v28 = (pow(~1.0)(x1) * dx1)
-    let v29 = (dx1 * x2)
-    let v30 = (x1 * dx2)
-    let v31 = (v29 + v30)
-    let v32 = (cos(x2) * dx2)
-    let v33 = ~(v32)
-    let v34 = (v31 + v33)
-    let v35 = (v28 + v34)
-    in v35
+    ((pow(~1.0)(x1) * dx1) + (((dx1 * x2) + (x1 * dx2)) + ~((cos(x2) * dx2))))
 Trying example: t5
   e = ~(sin(x1))
   f_unopt = (~ o (sin o pi_1/1))
@@ -85,11 +64,8 @@ Trying example: fun1
 Now evaluating
 Now simplifying
   fun1' (x1,x2) (2.0,2.0) =
-    let v36 = (~(sin(x1)) * 2.0)
-    let v37 = (cos(x2) * 2.0)
-    let v38 = (v36 + v37)
-    let v39 = (pow(~1.0)((cos(x1) + sin(x2))) * v38)
-    in (v38,v39)
+    let v1 = ((~(sin(x1)) * 2.0) + (cos(x2) * 2.0))
+    in (v1,(pow(~1.0)((cos(x1) + sin(x2))) * v1))
 
 Trying example: fun2
   fun2 = ln

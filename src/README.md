@@ -1,0 +1,125 @@
+# Notes on Combinatory AD
+
+This implementation of combinatory AD (CAD) is a library, written in
+Standard ML, that provides for both forward-mode AD (FAD) and
+reverse-mode AD (RAD). The ultimate aim is for the implementation to
+generate efficient gradient code (in different languages; e.g.,
+Futhark) for code specified in a high-level (domain-specific)
+functional language. The implementation first turns source code into
+combinatory form, which can then be differentiated, resulting in (1)
+code for evaluating the zero-order representation of the program and
+(2) a linear-map representation of the derivative. The linear-map is
+an abstract structure, which can be interpreted in a forward-mode
+setting (for generating code according to a forward-mode AD strategy)
+or be transposed (forming an adjoint) before being interpreted, which
+will generate code according to a reverse-mode AD strategy.
+
+The implementation takes care of avoiding expression swell by
+differentiating and interpreting linear maps in a statement monad.
+
+## Example 1
+
+Consider the function
+
+    let f (x1,x2) = ln (x1 * cos x2)
+
+This function is turned into the following definition in point-free
+notation format:
+
+    let f = ln ○ ((*) ○ ((π 1 × (cos ○ π 2)) ○ Δ))
+
+The combinatory AD framework defines a _differentiation operator_ `D`
+of the following type:
+
+    D : (V → W) → V → (W × (V ↦ W)) M
+
+Here `M` is a `let`-binding context monad, which is used for avoiding
+expression swell (the monad keeps track of a series of
+`let`-bindings). Further, we use `↦` to indicate that a function is a
+linear map.
+
+The result of differentiating `f` is thus a pair of a term representing the
+expression `f(x1,x2)` and a linear map, both appearing inside a
+`let`-binding context:
+
+    D f (x1,x2) =
+	   let v9 = cos x2
+	   in ( ln(x1*v9)
+	      , pow(~1.0)(x1*v9)*) •
+		    (+) •
+		    ((*v9) ⊕ (x1*)) •
+			(π 1 ⊕ (~(sin x2)*) • π 2) •
+			Δ
+          )
+
+Notice how the `let`-binding context ensures that the term `cos x2` is
+evaluated only once.
+
+For reverse-mode AD, the linear map is transposed into the following
+linear map:
+
+    let f^ (x1,x2) =
+	  let v9 = cos x2
+      in (+) •
+		 ((Id ⊕ zero) • Δ ⊕ (zero ⊕ id) • Δ • (~(sin(x2)) *)) •
+		 ((*v9) ⊕ (x1*)) •
+		 Δ •
+		 (pow(~1.0)(x1*v9)*)
+
+Notice that `v9` appears twice in the linear map definition. If `D f`
+has type `V → (W × (V ↦ W)) M`, `f^` has type `V → (W ↦ V) M`.
+For the concrete case, `f^ (x1,x2)` has type `(ℝ ↦ ℝ×ℝ) M`.
+
+By "applying" the linear map to the value `1.0`, we get the following
+term (in a `let`-binding context):
+
+    let f^ (x1,x2) 1.0 =
+       let v9 = cos x2
+       let v10 = pow(~1.0)(x1*v9)
+       let v11 = v10*v9
+       let v12 = ~(sin(x2)) * (x1*v10)
+       in (v11, v12)
+
+
+## Expressions
+
+We use `r` to range over reals (ℝ). Unary operators (⍴) and binary
+operators (◇) are defined as follows:
+
+    ⍴ ::= ln | sin | cos | exp | pow r | ~
+    ◇ ::= + | * | -
+
+Expressions take the following form:
+
+    e ::= r | x | ⍴ e | e ◇ e | (e,e) | π i e | (e)
+
+## Point-Free Notation
+
+Point-free notation is defined according to the following grammar:
+
+    p ::= p ○ p | π i | K e | p × p | Δ | Id | ⍴ | ◇ | (p)
+
+Here is an overview of the semantics of the main point-free
+combinators:
+
+    Δ  : V → V × V
+	    = λx.(x,x)
+	Id : V → V
+	    = λx.x
+	×  : (A → B) × (C → D) → (A × C) → (B × D)
+	    = λ(f,g).λ(x,y).(f x,g y)
+	○  : (B → C) × (A → B) → A → C
+	    = λ(f,g).λx.f(g x)
+
+## Linear maps
+
+Linear maps are defined according to the following grammar:
+
+    m ::= Δ | (+) | ~ | π i | 0 | Id | m ⊕ m
+	    | m • m | (e◇) | (◇e) | (m)
+
+Here ◇ represents bi-linear functions.
+
+## Other Examples
+
+Try run the examples using `make`.
