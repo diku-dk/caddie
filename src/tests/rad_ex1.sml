@@ -37,14 +37,22 @@ fun ex {name, e, arg, dy} =
 
 local open E.DSL
 in
-val () = ex {name="ex1", e=ln (sin x1), arg=V.Var "x1", dy=V.R 1.0}
+val () = ex {name="ex1", e= ln (sin x1), arg=V.Var "x1", dy=V.R 1.0}
 
-val () = ex {name="ex2", e=x1*x2, arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
+val () = ex {name="ex2", e= x1*x2, arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
 
-val () = ex {name="ex3", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
+val () = ex {name="ex3", e= ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
 
-val () = ex {name="ex4", e=(ln x1 + x1*x2 - sin x2) * (x1 + x2), arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
+val () = ex {name="ex4", arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0,
+             e= (ln x1 + x1*x2 - sin x2) * (x1 + x2)
+            }
 
-val () = ex {name="ex5", e=ln (x1 * cos x2), arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
+val () = ex {name="ex5", arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0,
+             e= ln (x1 * cos x2)
+            }
+
+val () = ex {name="ex6", arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0,
+             e=  x2*(~(iff(x1,x2*x1,sin x2)))
+            }
 
 end

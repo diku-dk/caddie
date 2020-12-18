@@ -12,6 +12,7 @@ datatype lin = Lin of string * (v -> v)
              | Comp of lin * lin
              | CurL of Prim.bilin * v
              | CurR of Prim.bilin * v
+             | If of v * lin M * lin M
 
 val lin = Lin
 fun prj d i = Prj (d,i)
@@ -37,11 +38,13 @@ fun pp e =
       | Comp(e1,e2) => pp e1 ^ " :o: " ^ pp e2
       | CurL(p,v) => "(" ^ V.pp v ^ " " ^ Prim.pp_bilin p ^ ")"
       | CurR(p,v) => "(" ^ Prim.pp_bilin p ^ " " ^ V.pp v ^ ")"
+      | If(v,m1,m2) => "(if " ^ V.pp v ^ " then " ^ V.ppM "  " pp m1 ^ " else " ^ V.ppM "  " pp m2 ^ ")"
 
 val ret = V.ret
 infix >>=
 val op >>= = V.>>=
 val letBind = ret (*V.letBind*)
+val iff = If
 
 fun eval (e:lin) (x:v) : v V.M =
     case e of
@@ -67,6 +70,9 @@ fun eval (e:lin) (x:v) : v V.M =
                                                   Prim.pp_bilin p ^ "; x=" ^
                                                   V.pp x ^ "; v=" ^ V.pp v ^ "\n");
                                            raise X))
+      | If(v,m1,m2) => ret(V.iff (v,
+                                  m1 >>= (fn m1 => eval m1 x),
+                                  m2 >>= (fn m2 => eval m2 x)))
 
 fun transp (e:lin) : lin =
     case e of
@@ -95,5 +101,8 @@ fun transp (e:lin) : lin =
       | CurR(p,v) =>
         die ("transp.CurR problem: " ^
              Prim.pp_bilin p ^ "; v=" ^ V.pp v)
+      | If(v,m1,m2) => If(v,
+                          m1 >>= (ret o transp),
+                          m2 >>= (ret o transp))
 
 end

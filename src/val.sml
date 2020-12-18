@@ -86,6 +86,11 @@ val ret : 'a -> 'a M = fn x => x
 val >>= : 'a M * ('a -> 'b M) -> 'b M = fn (v, f) => f v
 val letBind : v -> v M = fn x => x
 
+fun iff (v,m1,m2) =
+    case v of
+        R v => if v >= 0.0 then m1 else m2
+      | _ => die "iff: expecting real"
+
 fun ppM (ind:string) (pp:'a -> string) (x: 'a M) : string = ind ^ pp x
 
 val getVal = fn x => x

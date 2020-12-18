@@ -10,6 +10,7 @@ signature FUN = sig
        | Id                  (* X -> X *)
        | Uprim of Prim.uprim
        | Bilin of Prim.bilin (* X*Y->Z *)
+       | If of f * f * f
 
   val pp  : f -> string
   val opt : f -> f
@@ -26,5 +27,6 @@ signature FUN = sig
     val ~    : f
     val dup  : f
     val id   : f
+    val iff  : f * f * f -> f  (* iff : (A->R)x(A->C)x(A->C) -> A -> C *)
   end
 end

@@ -33,6 +33,7 @@ fun diff (f:F.f) (x:v) : v * L.lin =
                 L.oplus(L.curR(p,V.prjI "mul-R" 2 x),
                         L.curL(p,V.prjI "mul-L" 1 x))))
       | F.Id => (x, L.id)
+      | F.If _ => die "diff - If not supported"
 
 type 'a M = 'a V.M
 val op >>= = V.>>= infix >>=
@@ -67,6 +68,13 @@ fun diffM (f:F.f) (x:v) : (v * L.lin) M =
                                  L.curL(p,x1))))))
            | _ => die "diffM: expecting pair in Bilin")
       | F.Id => ret (x, L.id)
+      | F.If(f,g,h) =>
+        diffM f x >>= (fn (fx,_) =>
+        let val mg = diffM g x
+            val mh = diffM h x
+        in ret(V.iff(fx, mg >>= (ret o #1), mh >>= (ret o #1)),
+               L.iff(fx, mg >>= (ret o #2), mh >>= (ret o #2)))
+        end)
 
 (*
 fun diffr (f:F.f) (x:v) : v * L.lin =

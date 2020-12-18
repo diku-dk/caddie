@@ -10,6 +10,7 @@ datatype e =
        | Bilin of Prim.bilin * e * e
        | Add of e * e
        | Pair of e * e
+       | If of e * e * e
 
 fun pp e =
     case e of
@@ -19,6 +20,7 @@ fun pp e =
       | Bilin(p,e1,e2) => "(" ^ pp e1 ^ Prim.pp_bilin p ^ pp e2 ^ ")"
       | Add(e1,e2) => "(" ^ pp e1 ^ "+" ^ pp e2 ^ ")"
       | Pair(e1,e2) => "(" ^ pp e1 ^ "," ^ pp e2 ^ ")"
+      | If(e,e1,e2) => "(if " ^ pp e ^ " then " ^ pp e1 ^ " else " ^ pp e2 ^ ")"
 
 fun lrangle (f,g) = F.Comp(F.FProd(f,g),F.Dup)
 fun hat opr (f,g) = F.Comp(opr,lrangle(f,g))
@@ -31,6 +33,7 @@ fun trans0 n e =
       | Bilin(p,e1,e2) => hat (F.Bilin p) (trans0 n e1,trans0 n e2)
       | Add(e1,e2) => hat F.Add (trans0 n e1,trans0 n e2)
       | Pair(e1,e2) => lrangle (trans0 n e1,trans0 n e2)
+      | If (e,e1,e2) => F.If(trans0 n e,trans0 n e1,trans0 n e2)
 
 fun max_x m e =
     case e of
@@ -40,6 +43,7 @@ fun max_x m e =
       | Bilin(p,e1,e2) => max_x (max_x m e1) e2
       | Add(e1,e2) => max_x (max_x m e1) e2
       | Pair(e1,e2) => max_x (max_x m e1) e2
+      | If(e,e1,e2) => max_x (max_x (max_x m e) e1) e2
 
 fun trans e =
     let val n = max_x 0 e
@@ -69,6 +73,7 @@ fun snart f =
               | F.Dup => Pair(e,e)
               | F.Uprim p => Uprim(p,e)
               | F.Bilin p => Bilin(p,s (F.Prj(2,1)) e,s (F.Prj(2,2)) e)
+              | F.If(f,g,h) => If(s f e,s g e,s h e)
     in s f (X ~1)
     end
 
@@ -85,5 +90,6 @@ structure DSL = struct
   val const : v -> e = C
   val x1 : e = X 1
   val x2 : e = X 2
+  val iff : e * e * e -> e = If
 end
 end

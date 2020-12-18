@@ -31,25 +31,26 @@ notation format:
 The combinatory AD framework defines a _differentiation operator_ `D`
 of the following type:
 
-    D : (V → W) → V → (W × (V ↦ W)) M
+    D : (V → W) ⇒ V ⇒ (W × (V ↦ W)) M
 
-Here `M` is a `let`-binding context monad, which is used for avoiding
-expression swell (the monad keeps track of a series of
-`let`-bindings). Further, we use `↦` to indicate that a function is a
-linear map.
+Here `⇒` denotes a function at the meta level, whereas `→` denotes a
+function at the expression level. Further, we use `↦` to indicate that
+a function is a linear map.  The type constructor `M` denotes a
+`let`-binding context monad, which is used for avoiding expression
+swell (the monad keeps track of a series of `let`-bindings).
 
 The result of differentiating `f` is thus a pair of a term representing the
 expression `f(x1,x2)` and a linear map, both appearing inside a
 `let`-binding context:
 
     D f (x1,x2) =
-	   let v9 = cos x2
-	   in ( ln(x1*v9)
-	      , pow(~1.0)(x1*v9)*) •
-		    (+) •
-		    ((*v9) ⊕ (x1*)) •
-			(π 1 ⊕ (~(sin x2)*) • π 2) •
-			Δ
+       let v9 = cos x2
+       in ( ln(x1*v9)
+          , pow(~1.0)(x1*v9)*) •
+            (+) •
+            ((*v9) ⊕ (x1*)) •
+            (π 1 ⊕ (~(sin x2)*) • π 2) •
+            Δ
           )
 
 Notice how the `let`-binding context ensures that the term `cos x2` is
@@ -59,15 +60,15 @@ For reverse-mode AD, the linear map is transposed into the following
 linear map:
 
     let f^ (x1,x2) =
-	  let v9 = cos x2
+      let v9 = cos x2
       in (+) •
-		 ((Id ⊕ zero) • Δ ⊕ (zero ⊕ id) • Δ • (~(sin(x2)) *)) •
-		 ((*v9) ⊕ (x1*)) •
-		 Δ •
-		 (pow(~1.0)(x1*v9)*)
+         ((Id ⊕ zero) • Δ ⊕ (zero ⊕ id) • Δ • (~(sin(x2)) *)) •
+         ((*v9) ⊕ (x1*)) •
+         Δ •
+         (pow(~1.0)(x1*v9)*)
 
 Notice that `v9` appears twice in the linear map definition. If `D f`
-has type `V → (W × (V ↦ W)) M`, `f^` has type `V → (W ↦ V) M`.
+has type `V ⇒ (W × (V ↦ W)) M`, `f^` has type `V ⇒ (W ↦ V) M`.
 For the concrete case, `f^ (x1,x2)` has type `(ℝ ↦ ℝ×ℝ) M`.
 
 By "applying" the linear map to the value `1.0`, we get the following
@@ -84,7 +85,7 @@ term (in a `let`-binding context):
 ## Expressions
 
 We use `r` to range over reals (ℝ). Unary operators (⍴) and binary
-operators (◇) are defined as follows:
+operators (◇) are the following:
 
     ⍴ ::= ln | sin | cos | exp | pow r | ~
     ◇ ::= + | * | -
@@ -102,24 +103,93 @@ Point-free notation is defined according to the following grammar:
 Here is an overview of the semantics of the main point-free
 combinators:
 
-    Δ  : V → V × V
-	    = λx.(x,x)
-	Id : V → V
-	    = λx.x
-	×  : (A → B) × (C → D) → (A × C) → (B × D)
-	    = λ(f,g).λ(x,y).(f x,g y)
-	○  : (B → C) × (A → B) → A → C
-	    = λ(f,g).λx.f(g x)
+    ⟦Δ⟧  : V → V × V
+         = λx.(x,x)
+    ⟦Id⟧ : V → V
+         = λx.x
+    ⟦×⟧  : (A → B) × (C → D) → (A × C) → (B × D)
+         = λ(f,g).λ(x,y).(f x,g y)
+    ⟦○⟧  : (B → C) × (A → B) → A → C
+         = λ(f,g).λx.f(g x)
 
 ## Linear maps
 
 Linear maps are defined according to the following grammar:
 
     m ::= Δ | (+) | ~ | π i | 0 | Id | m ⊕ m
-	    | m • m | (e◇) | (◇e) | (m)
+        | m • m | (e◇) | (◇e) | (m)
 
-Here ◇ represents bi-linear functions.
+Here `◇` represents bi-linear functions and `⊕` represents the
+linear-map counterpart of the point-free `×` operator. As for
+point-free notation, we can define the semantics of linear-map
+representations as follows:
+
+    ⟦Δ⟧  : V ↦ V × V
+         = λx.(x,x)
+
+    ⟦(+)⟧  : V × V ↦ V
+         = λ(x,x).x+x
+
+    ...
+
+    ⟦⊕⟧  : (A ↦ B) × (C ↦ D) → (A × C) ↦ (B × D)
+         = λ(f,g).λ(x,y).(f x,g y)
+
+    ⟦•⟧  : (B ↦ C) × (A ↦ B) → A ↦ C
+         = λ(f,g).λx.f(g x)
+
+    ⟦(e◇)⟧  : V ↦ V
+         = λx.⟦e⟧◇x
+
+    ⟦(◇e)⟧  : V ↦ V
+         = λx.x◇⟦e⟧
 
 ## Other Examples
 
 Try run the examples using `make`.
+
+## Conditionals
+
+Conditional expressions and point-free notation for conditionals are
+added as follows:
+
+    e ::= ... | if e then e else e
+
+    p ::= ... | if e then p else p
+
+The semantics of the point-free conditional expression syntax is
+defined, straightforwardly, as follows:
+
+    ⟦if e then p1 else p2⟧ : V → W
+      = if ⟦e⟧ then ⟦p1⟧ else ⟦p2⟧
+
+Similarly, linear-map support for conditionals can be provided as
+follows.
+
+    m ::= ... | if e then m M else m M
+
+Notice that a linear-map expression results in a linear map when
+evaluated. The semantics of the linear-map conditional construct is
+defined as follows:
+
+    ⟦if e then m1 else m2⟧ : V ↦ W
+      = if ⟦e⟧ then ⟦m1⟧ else ⟦m2⟧
+
+We can now extend the definition of the `D` function to work for
+conditional point-free notation:
+
+    D (if e then p1 else p2) v =
+      = Let M1 = D p1 v
+	    Let M2 = D p2 v
+		Let (e1M,m1M) = Split M1
+		Let (e2M,m2M) = Split M2
+		ret ( if e then e1M else e2M,
+		      if e then m1M else m2M)
+	    ))
+
+    D (if e then p1 else p2) v =
+      = Let (C1,e1,m1) = run(D p1 v) In
+	    Let (C2,e2,m2) = run(D p2 v) In
+		ret ( if e then C1 e1 else C2 e2,
+		      if e then m1 else m2)
+	    ))

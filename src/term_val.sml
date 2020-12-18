@@ -2,8 +2,12 @@ fun die s = (print ("Error (TermVal): " ^ s ^ "\n"); raise Fail s)
 
 structure TermVal = struct
 type var = string
+
+
 datatype v = R of real | T of v list | Uprim of Prim.uprim * v
            | Add of v*v | Var of var | Bilin of Prim.bilin * v * v
+           | If of v * v M * v M
+withtype 'a M = 'a * (string * v)list
 
 val VarOpt = SOME Var
 
@@ -13,6 +17,12 @@ fun unT (T xs) = SOME xs
 fun unR (R v) = SOME v
   | unR _ = NONE
 
+fun ppM0 (ind:string) (pp:v->string) (pp0:'a -> string) ((x,bs): 'a M) : string =
+    case bs of
+        nil => ind ^ pp0 x
+      | _ => let val bs = List.map (fn (var,v) => ind ^ "let " ^ var ^ " = " ^ pp v) bs
+             in String.concatWith "\n" bs ^ "\n" ^ ind ^ "in " ^ pp0 x
+             end
 fun pp v =
     case v of
         R r => Real.toString r
@@ -21,6 +31,12 @@ fun pp v =
       | Add(v1,v2) => "(" ^ pp v1 ^ " + " ^ pp v2 ^ ")"
       | Bilin(p,v1,v2) => "(" ^ pp v1 ^ " " ^ Prim.pp_bilin p ^ " " ^ pp v2 ^ ")"
       | Var v => v
+      | If(v,m1,m2) => "(if " ^ pp v ^ " then\n" ^ ppM0 "  " pp pp m1 ^ "\nelse\n" ^ ppM0 "  " pp pp m2 ^ ")"
+
+fun ppM (ind:string) (pp0:'a -> string) (m: 'a M) : string =
+    ppM0 ind pp pp0 m
+
+fun iff (v,m1,m2) = If(v,m1,m2)
 
 fun prjI (s:string) (i:int) : v -> v =
     fn T xs => (List.nth(xs,i-1) handle _ => die (s ^ " index error"))
@@ -115,6 +131,8 @@ fun simpl0 v =
                                  else Bilin(Prim.Mul,simpl0 v,R r)
       | Bilin(Prim.Mul,v1,v2) => Bilin(Prim.Mul,simpl0 v1,simpl0 v2)
       | Bilin(p,v1,v2) => Bilin(p,simpl0 v1,simpl0 v2)
+      | If(v,m1,m2) => If(simpl0 v,simplM m1,simplM m2)
+and simplM (v,bs) = (simpl0 v,map (fn (x,v) => (x,simpl0 v)) bs)
 
 fun simpl1 e =
     let val () = tick_reset()
@@ -144,6 +162,12 @@ fun subst S e =
       | Uprim(p,e) => Uprim(p,subst S e)
       | Add(e1,e2) => Add(subst S e1, subst S e2)
       | Bilin(p,e1,e2) => Bilin(p,subst S e1, subst S e2)
+      | If(v,m1,m2) => If (subst S v,
+                           substM S m1,
+                           substM S m2)
+
+and substM S (v,bs) =
+    (subst S v,map (fn (x,e) => (x,subst S e)) bs)
 
 fun combine S ca nil = (S,ca)
   | combine S ca ((k,v)::rest) =
@@ -188,8 +212,7 @@ fun isComplex v =
       | Uprim (p,v) => true
       | Add _ => true
       | Bilin _ => true
-
-type 'a M = 'a * (string * v)list
+      | If _ => true
 
 val newVar =
     let val c = ref 0
@@ -210,13 +233,6 @@ fun letBind (v:v) : v M =
       in (Var var, [(var,v)])
       end
     else ret v
-
-fun ppM (ind:string) (pp0:'a -> string) ((x,bs): 'a M) : string =
-    case bs of
-        nil => ind ^ pp0 x
-      | _ => let val bs = List.map (fn (var,v) => ind ^ "let " ^ var ^ " = " ^ pp v) bs
-             in String.concatWith "\n" bs ^ "\n" ^ ind ^ "in " ^ pp0 x
-             end
 
 val getVal = fn (x,_) => x
 

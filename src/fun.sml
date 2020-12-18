@@ -13,6 +13,7 @@ datatype f =
        | Id                  (* X -> X *)
        | Uprim of Prim.uprim
        | Bilin of Prim.bilin
+       | If of f * f * f
 
 fun pp e =
     case e of
@@ -25,6 +26,7 @@ fun pp e =
       | Dup => "dup"
       | Uprim p => Prim.pp_uprim p
       | Bilin opr => "(" ^ Prim.pp_bilin opr ^ ")"
+      | If(f,g,h) => "(if " ^ pp f ^ " then " ^ pp g ^ " else " ^ pp h ^ ")"
 
 local val t = ref 0
 in fun tick_reset() = t := 0
@@ -39,6 +41,7 @@ fun opt0 e =
       | Comp(f,Id) => (tick(); opt0 f)
       | Comp(f,g) => Comp(opt0 f,opt0 g)
       | FProd(f,g) => FProd(opt0 f,opt0 g)
+      | If(f,g,h) => If(opt0 f,opt0 g,opt0 h)
       | _ => e
 
 fun opt e =
@@ -60,6 +63,7 @@ structure DSL = struct
   val exp = Uprim Prim.Exp
   val ln = Uprim Prim.Ln
   fun pow r = Uprim (Prim.Pow r)
+  val iff = If
   val ~ = Uprim Prim.Neg
 end
 end

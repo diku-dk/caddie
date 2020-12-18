@@ -18,6 +18,8 @@ signature LIN = sig
   val dup   : lin
   val neg   : lin
 
+  val iff   : v * lin M * lin M -> lin
+
   val pp    : lin -> string
   val eval  : lin -> v -> v M
 
