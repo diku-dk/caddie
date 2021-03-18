@@ -147,11 +147,11 @@ the free identifiers of `e`.
 ## Linear maps
 
 Let `V` and `W` be vector spaces over a field `K`. Semantically then,
-a function `f` from `V` to `W` is a _linear map_, written `f: V → W`,
+a function `f` from `V` to `W` is a _linear map_, written `f: V ↦ W`,
 if the following two properties hold:
 
-1. `f(x+y) = f(x) + f(y)`    forall `x, y ∈ V`
-2. `f(c*x) = c*f(x)`         forall `c ∈ K, x ∈ V`
+1. `f (x + y) = f(x) + f(y)    ∀x,y ∈ V`
+2. `f(c * x) = c * f(x)        ∀c ∈ K, ∀x ∈ V`
 
 In the following, we shall define a language for composing linear maps
 from simpler linear maps. The composed maps are then linear by
