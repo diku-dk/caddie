@@ -17,7 +17,10 @@ will generate code according to a reverse-mode AD strategy.
 The implementation takes care of avoiding expression swell by
 differentiating and interpreting linear maps in a statement monad.
 
-## Example 1
+## An Introductory Example
+
+We first give a simple introductory example before we describe the
+implementation.
 
 Consider the function
 
@@ -80,7 +83,6 @@ term (in a `let`-binding context):
        let v11 = v10*v9
        let v12 = ~(sin(x2)) * (x1*v10)
        in (v11, v12)
-
 
 ## Expressions
 
@@ -200,7 +202,11 @@ denotes a function from `A` to `B` at the meta-level. We use `V → W`
 to denote expressions that represent functions taking a value of type
 `V` as input and returns a value of type `W` as a result. We use the
 notation `A ⊠ B` to denote the type of meta pairs and we allow
-ourselves to use `Let`-notation to deconstruct such meta pairs.
+ourselves to use `Let`-notation to deconstruct such meta pairs. We
+also assume a function `D⍴ : V ⇒ W ⊠ (V ↦ W)` that specifies how
+primitives are differentiated. For instance, `Dcos : ℝ ⇒ ℝ ⊠ (ℝ ↦ ℝ)`
+is defined by `Dcos (x) = (cos x, ((~sin x)*))`. Here is the
+definition of differentiation:
 
     D : (V → W) ⇒ V ⇒ W ⊠ (V ↦ W)
 
@@ -213,21 +219,24 @@ ourselves to use `Let`-notation to deconstruct such meta pairs.
 
     D (π i) x = (π i x, π i)
 
-	D (Δ) x = ((x,x), Δ)
-
-	D (+) x = ((+)x, (+))
-
 	D (f × g) x =
 	  Let (fx, f'x) = D f (π 1 x)
 	  Let (gy, g'y) = D g (π 2 x)
 	  In ((fx,gy), f'x ⊕ g'y)
 
-    D (◇) x = (◇ x, (+) • ((◇ π 2) ⊕ (π 1 ◇)))
+	D (Δ) x = ((x,x), Δ)
 
 	D (Id) x = (x, Id)
 
-Now, _forward-mode automatic-differentiation_ of a point-free expression `p`
-with respect to an argument `x`, written `p'(x)`, is defined by the equation
+    D (⍴) x = D⍴ x
+
+    D (◇) x = (◇ x, (+) • ((◇ π 2) ⊕ (π 1 ◇)))
+
+	D (+) x = ((+)x, (+))
+
+Now, _forward-mode automatic-differentiation_ of a point-free
+expression `p` with respect to an argument `x`, written `p'(x)`, is
+defined by the equation
 
     p' : V ⇒ V ↦ W
     p' (x) = Let (_, m) = D p x
@@ -294,9 +303,34 @@ point-free expression `p` with respect to an argument `x`, written
     p^ (x) = Let (_, m) = D p x
 	         In Adj m
 
-## Other Examples
+## Value Domains
 
-Try run the examples using `make`.
+We have not yet said anything about how value domains (e.g., the `V`
+in the type for `p^` above) are implemented. In fact, the
+implementation is parametric in the choice of the value domain. In
+other words, the implementation, which is written in Standard ML, can
+choose to use the underlying ML value domain for representing
+values. Another representation is to use a term representation, which
+allows for term inspection and for emitting residual code in a
+suitable language of choice (e.g., Futhark).
+
+## Running the Examples
+
+Try run the examples using `make`. The example definitions are located
+in the `tests` directory (see for instance
+[ad_ex0.sml](tests/ad_ex0.sml), [rad_ex1.sml](tests/rad_ex1.sml), and
+[ba.sml](tests/ba.sml)). The implementation does not yet feature a
+parser, which means that new examples are required to be embedded in
+SML source code.
+
+Here is an overview over the examples:
+
+----------------------------------------------------------------------
+| Source                         | Output                            |
+----------------------------------------------------------------------
+| [ad_ex0.sml](tests/ad_ex0.sml) | [ad_ex0.out](tests/ad_ex0.out.ok) |
+| [ad_ex1.sml](tests/ad_ex1.sml) | [ad_ex1.out](tests/ad_ex1.out.ok) |
+----------------------------------------------------------------------
 
 ## Conditionals
 
