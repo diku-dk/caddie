@@ -129,13 +129,13 @@ variable assignment, we define the _point-free translation_ of `e`,
 written `|e|δ`, as follows:
 
                   |x|δ   =   δ(x)
-	              |r|δ   =   K r
+                  |r|δ   =   K r
                 |⍴ e|δ   =   ⍴ ○ |e|δ
-	        |e1 ◇ e2|δ   =   ◇ ○ (|e1|δ × |e2|δ) ○ Δ
-	|let x = e in e'|δ   =   |e'|(δ ○ π 2, x:π 1) ○ (|e|δ × Id) ○ Δ
-	       |(e1, e2)|δ   =   (|e1|δ × |e2|δ) ○ Δ
-	          |π i e|δ   =   π i ○ |e|δ
-			    |(e)|δ   =   |e|δ
+            |e1 ◇ e2|δ   =   ◇ ○ (|e1|δ × |e2|δ) ○ Δ
+    |let x = e in e'|δ   =   |e'|(δ ○ π 2, x:π 1) ○ (|e|δ × Id) ○ Δ
+           |(e1, e2)|δ   =   (|e1|δ × |e2|δ) ○ Δ
+              |π i e|δ   =   π i ○ |e|δ
+                |(e)|δ   =   |e|δ
 
 The result of the translation is a point-free expression. We shall not
 here provide type systems for expressions and point-free
@@ -215,16 +215,16 @@ conditional point-free notation:
 
     D (if e then p1 else p2) v =
       = Let M1 = D p1 v
-	    Let M2 = D p2 v
-		Let (e1M,m1M) = Split M1
-		Let (e2M,m2M) = Split M2
-		ret ( if e then e1M else e2M,
-		      if e then m1M else m2M)
-	    ))
+        Let M2 = D p2 v
+        Let (e1M,m1M) = Split M1
+        Let (e2M,m2M) = Split M2
+        ret ( if e then e1M else e2M,
+              if e then m1M else m2M)
+        ))
 
     D (if e then p1 else p2) v =
       = Let (C1,e1,m1) = run(D p1 v) In
-	    Let (C2,e2,m2) = run(D p2 v) In
-		ret ( if e then C1 e1 else C2 e2,
-		      if e then m1 else m2)
-	    ))
+        Let (C2,e2,m2) = run(D p2 v) In
+        ret ( if e then C1 e1 else C2 e2,
+              if e then m1 else m2)
+        ))
