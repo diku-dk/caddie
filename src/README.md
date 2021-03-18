@@ -128,14 +128,14 @@ projections. When `δ = x1:p1,...,xn:pn`, we write `δ ○ p` to mean
 variable assignment, we define the _point-free translation_ of `e`,
 written `|e|δ`, as follows:
 
-                  |x|δ   =   δ(x)
-                  |r|δ   =   K r
-                |⍴ e|δ   =   ⍴ ○ |e|δ
-            |e1 ◇ e2|δ   =   ◇ ○ (|e1|δ × |e2|δ) ○ Δ
-    |let x = e in e'|δ   =   |e'|(δ ○ π 2, x:π 1) ○ (|e|δ × Id) ○ Δ
-           |(e1, e2)|δ   =   (|e1|δ × |e2|δ) ○ Δ
-              |π i e|δ   =   π i ○ |e|δ
-                |(e)|δ   =   |e|δ
+                   |x|δ   =   δ(x)
+                   |r|δ   =   K r
+                 |⍴ e|δ   =   ⍴ ○ |e|δ
+             |e1 ◇ e2|δ   =   ◇ ○ (|e1|δ × |e2|δ) ○ Δ
+    |let x = e1 in e2|δ   =   |e2|(δ ○ π 2, x:π 1) ○ (|e1|δ × Id) ○ Δ
+            |(e1, e2)|δ   =   (|e1|δ × |e2|δ) ○ Δ
+               |π i e|δ   =   π i ○ |e|δ
+                 |(e)|δ   =   |e|δ
 
 The result of the translation is a point-free expression. We shall not
 here provide type systems for expressions and point-free
