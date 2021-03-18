@@ -325,12 +325,13 @@ SML source code.
 
 Here is an overview over the examples:
 
-----------------------------------------------------------------------
-| Source                         | Output                            |
-----------------------------------------------------------------------
-| [ad_ex0.sml](tests/ad_ex0.sml) | [ad_ex0.out](tests/ad_ex0.out.ok) |
-| [ad_ex1.sml](tests/ad_ex1.sml) | [ad_ex1.out](tests/ad_ex1.out.ok) |
-----------------------------------------------------------------------
+ | Source                           | Output                              |
+ |----------------------------------|-------------------------------------|
+ | [ad_ex0.sml](tests/ad_ex0.sml)   | [ad_ex0.out](tests/ad_ex0.out.ok)   |
+ | [ad_ex1.sml](tests/ad_ex1.sml)   | [ad_ex1.out](tests/ad_ex1.out.ok)   |
+ | [ba.sml](tests/ba.sml)           | [ba.out](tests/ba.out.ok)           |
+ | [rad_ex0.sml](tests/rad_ex0.sml) | [rad_ex0.out](tests/rad_ex0.out.ok) |
+ | [rad_ex1.sml](tests/rad_ex1.sml) | [rad_ex1.out](tests/rad_ex1.out.ok) |
 
 ## Conditionals
 
