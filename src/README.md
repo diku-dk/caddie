@@ -150,14 +150,14 @@ Let `V` and `W` be vector spaces over a field `K`. Semantically then,
 a function `f` from `V` to `W` is a _linear map_, written `f: V ↦ W`,
 if the following two properties hold:
 
-1. `f (x + y) = f(x) + f(y)    ∀x,y ∈ V`
-2. `f(c * x) = c * f(x)        ∀c ∈ K, ∀x ∈ V`
+    1. f (x + y) = f(x) + f(y)     ∀x,y ∈ V
+    2. f (c * x) = c * f(x)        ∀c ∈ K, ∀x ∈ V
 
 In the following, we shall define a language for composing linear maps
 from simpler linear maps. The composed maps are then linear by
 construction.
 
-We define linear maps  according to the following grammar:
+We define linear maps according to the following grammar:
 
     m ::= Δ | (+) | ~ | π i | 0 | Id | m ⊕ m
         | m • m | (e◇) | (◇e) | (m)
@@ -194,7 +194,105 @@ matrices.
 
 ## Differentiation
 
-Differentiation is defined on point-free expressions.
+Differentiation is defined on point-free expressions. Here we give a
+non-monadic version of differentiation. Notice again that `A ⇒ B`
+denotes a function from `A` to `B` at the meta-level. We use `V → W`
+to denote expressions that represent functions taking a value of type
+`V` as input and returns a value of type `W` as a result. We use the
+notation `A ⊠ B` to denote the type of meta pairs and we allow
+ourselves to use `Let`-notation to deconstruct such meta pairs.
+
+    D : (V → W) ⇒ V ⇒ W ⊠ (V ↦ W)
+
+    D (g ○ f) x =
+	  Let (fx, f'x) = D f x
+	  Let (gfx,g'fx) = D g fx
+	  In (gfx, g'fx • f'x)
+
+    D (K y) x = (y, 0)
+
+    D (π i) x = (π i x, π i)
+
+	D (Δ) x = ((x,x), Δ)
+
+	D (+) x = ((+)x, (+))
+
+	D (f × g) x =
+	  Let (fx, f'x) = D f (π 1 x)
+	  Let (gy, g'y) = D g (π 2 x)
+	  In ((fx,gy), f'x ⊕ g'y)
+
+    D (◇) x = (◇ x, (+) • ((◇ π 2) ⊕ (π 1 ◇)))
+
+	D (Id) x = (x, Id)
+
+Now, _forward-mode automatic-differentiation_ of a point-free expression `p`
+with respect to an argument `x`, written `p'(x)`, is defined by the equation
+
+    p' : V ⇒ V ↦ W
+    p' (x) = Let (_, m) = D p x
+	         In m
+
+To give a definition for reverse-mode automatic-differentiation, we
+first need to give a definition for what it means to take the adjoint
+of a linear map.
+
+## The Adjoint of a Linear Map
+
+When `m : V ↦ W` is a linear map expression, the _adjoint_ of `m`,
+written `Adj(m)`, is a linear map of type `W ↦ V`, defined according to
+the following rules:
+
+    Adj : (V ↦ W) ⇒ (W ↦ V)
+
+	Adj (0) = 0
+
+	Adj (Id) = Id
+
+	Adj (Δ) = (+)
+
+	Adj ((+)) = Δ
+
+	Adj (~) = ~
+
+    Adj (π 1) = (Id ⊕ 0) • Δ
+
+    Adj (π 2) = (0 ⊕ Id) • Δ
+
+    Adj (m₁ • m₂) = Adj (m₂) • Adj (m₁)
+
+	Adj (m₁ ⊕ m₂) = Adj (m₁) ⊕ Adj (m₂)
+
+	Adj ((e*)) = (e*)     if * : ℝ × ℝ → ℝ           (multiplication)
+	Adj ((*e)) = (*e)     if * : ℝ × ℝ → ℝ           (multiplication)
+
+	Adj ((e·)) = (*e)     if · : ℝⁿ × ℝⁿ → ℝ            (dot product)
+	Adj ((·e)) = (*e)     if · : ℝⁿ × ℝⁿ → ℝ            (dot product)
+
+	Adj ((e×)) = (e×)     if × : ℝ × ℝⁿ → ℝⁿ         (scalar product)
+	Adj ((×e)) = (·e)     if × : ℝ × ℝⁿ → ℝⁿ         (scalar product)
+
+Notice that taking the adjoint of a linear map defined as a section operator is inherently dependent on the
+particular binary operator. For instance, we see that the adjoint of a
+right-section `(×e) : ℝ → ℝⁿ` of a partially applied scalar product is defined in
+terms of a dot product `(·e) : ℝⁿ → ℝ`.
+
+It holds that if `m : V ↦ W` and `Adj m` is defined, then `Adj (Adj m) = m`.
+
+As an example, we see that `Adj (Adj (π 1))` = `Adj((Id ⊕ 0) • Δ)` =
+`Adj(Δ) • Adj(Id ⊕ 0)` = `(+) • (Adj(Id) ⊕ Adj(0))` = `(+) • (Id ⊕ 0)`
+= `((+) • (Id ⊕ 0)) • (π 1 ⊕ π 2)` = `(+) • ((Id ⊕ 0) • (π 1 ⊕ π 2))`
+= `(+) • ((Id • π 1) ⊕ (0 • π 2))` = `(+) • (π 1 ⊕ 0)` = `π 1`.
+
+## Reverse-mode Automatic Differentiation
+
+We can now define _reverse-mode automatic-differentiation_ of a
+point-free expression `p` with respect to an argument `x`, written
+`p^(x)`, by the equation
+
+    p^ : V ⇒ W ↦ V
+    p^ (x) = Let (_, m) = D p x
+	         In Adj m
 
 ## Other Examples
 
