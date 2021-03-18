@@ -74,6 +74,7 @@ fun eval (e:lin) (x:v) : v V.M =
                                   m1 >>= (fn m1 => eval m1 x),
                                   m2 >>= (fn m2 => eval m2 x)))
 
+(* adjoint *)
 fun transp (e:lin) : lin =
     case e of
         Zero => Zero

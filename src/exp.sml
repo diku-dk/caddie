@@ -3,6 +3,8 @@ functor Exp(structure V:VAL
             sharing type V.v = F.v) : EXP where type f = F.f = struct
 type f = F.f
 type v = V.v
+type var = int
+
 datatype e =
          X of int
        | C of v
@@ -11,6 +13,7 @@ datatype e =
        | Add of e * e
        | Pair of e * e
        | If of e * e * e
+       | Let of var * e * e
 
 fun pp e =
     case e of
@@ -21,33 +24,58 @@ fun pp e =
       | Add(e1,e2) => "(" ^ pp e1 ^ "+" ^ pp e2 ^ ")"
       | Pair(e1,e2) => "(" ^ pp e1 ^ "," ^ pp e2 ^ ")"
       | If(e,e1,e2) => "(if " ^ pp e ^ " then " ^ pp e1 ^ " else " ^ pp e2 ^ ")"
+      | Let(i,e1,e2) => "(let x" ^ Int.toString i ^ " = " ^ pp e1 ^ " in " ^ pp e2 ^ ")"
 
 fun lrangle (f,g) = F.Comp(F.FProd(f,g),F.Dup)
 fun hat opr (f,g) = F.Comp(opr,lrangle(f,g))
 
-fun trans0 n e =
-    case e of
-        X i => F.Prj (n,i)
-      | C v => F.K v
-      | Uprim(p,e) => F.Comp (F.Uprim p, trans0 n e)
-      | Bilin(p,e1,e2) => hat (F.Bilin p) (trans0 n e1,trans0 n e2)
-      | Add(e1,e2) => hat F.Add (trans0 n e1,trans0 n e2)
-      | Pair(e1,e2) => lrangle (trans0 n e1,trans0 n e2)
-      | If (e,e1,e2) => F.If(trans0 n e,trans0 n e1,trans0 n e2)
+fun mem x xs = List.exists (fn y => x=y) xs
 
-fun max_x m e =
+fun max_x vs m e =
     case e of
-        X i => if i > m then i else m
+        X i => if mem i vs orelse m>i then m else i
       | C v => m
-      | Uprim(p,e) => max_x m e
-      | Bilin(p,e1,e2) => max_x (max_x m e1) e2
-      | Add(e1,e2) => max_x (max_x m e1) e2
-      | Pair(e1,e2) => max_x (max_x m e1) e2
-      | If(e,e1,e2) => max_x (max_x (max_x m e) e1) e2
+      | Uprim(p,e) => max_x vs m e
+      | Bilin(p,e1,e2) => max_x vs (max_x vs m e1) e2
+      | Add(e1,e2) => max_x vs (max_x vs m e1) e2
+      | Pair(e1,e2) => max_x vs (max_x vs m e1) e2
+      | If(e,e1,e2) => max_x vs (max_x vs (max_x vs m e) e1) e2
+      | Let(i,e1,e2) => max_x (i::vs) (max_x vs m e1) e2
+
+type delta = (var * f) list
+
+fun add (v,f,E) =
+    (v,f)::E
+
+fun lookup E v =
+    case E of
+        (k,f)::E => if v = k then SOME f
+                    else lookup E v
+      | nil => NONE
+
+fun push f E =
+    map (fn (x,g) => (x,F.Comp(g,f))) E
+
+fun init n =
+    List.tabulate(n+1, fn i => (i,F.Prj(n,i)))
+
+fun trans0 E e =
+    case e of
+        X i => (case lookup E i of
+                    SOME f => f
+                  | NONE => die ("trans: unbound variable x" ^ Int.toString i))
+      | C v => F.K v
+      | Uprim(p,e) => F.Comp (F.Uprim p, trans0 E e)
+      | Bilin(p,e1,e2) => hat (F.Bilin p) (trans0 E e1,trans0 E e2)
+      | Add(e1,e2) => hat F.Add (trans0 E e1,trans0 E e2)
+      | Pair(e1,e2) => lrangle (trans0 E e1,trans0 E e2)
+      | If (e,e1,e2) => F.If(trans0 E e,trans0 E e1,trans0 E e2)
+      | Let(i,e1,e2) => F.Comp(trans0 (add(i,F.Prj(2,0),push(F.Prj(2,1))E)) e2,
+                               F.Comp(F.FProd(trans0 E e1,F.Id),F.Dup))
 
 fun trans e =
-    let val n = max_x 0 e
-    in trans0 n e
+    let val m = max_x nil 0 e
+    in trans0 (init m) e
     end
 
 fun snart f =

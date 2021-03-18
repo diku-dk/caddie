@@ -93,6 +93,7 @@ operators (◇) are the following:
 Expressions take the following form:
 
     e ::= r | x | ⍴ e | e ◇ e | (e,e) | π i e | (e)
+        | let x = e in e
 
 ## Point-Free Notation
 
@@ -103,14 +104,44 @@ Point-free notation is defined according to the following grammar:
 Here is an overview of the semantics of the main point-free
 combinators:
 
-    ⟦Δ⟧  : V → V × V
-         = λx.(x,x)
-    ⟦Id⟧ : V → V
-         = λx.x
-    ⟦×⟧  : (A → B) × (C → D) → (A × C) → (B × D)
-         = λ(f,g).λ(x,y).(f x,g y)
-    ⟦○⟧  : (B → C) × (A → B) → A → C
-         = λ(f,g).λx.f(g x)
+    ⟦Δ⟧   : V → V × V
+          = λx.(x,x)
+    ⟦π 1⟧ : A × B → A
+          = λ(x,y).x
+    ⟦π 2⟧ : A × B → B
+          = λ(x,y).y
+    ⟦K e⟧ : A → B
+          = λ_.e
+    ⟦Id⟧  : V → V
+          = λx.x
+    ⟦×⟧   : (A → B) × (C → D) → (A × C) → (B × D)
+          = λ(f,g).λ(x,y).(f x,g y)
+    ⟦○⟧   : (B → C) × (A → B) → A → C
+          = λ(f,g).λx.f(g x)
+
+Expressions can be translated into point-free expressions by explicit
+environment-passing, which also supports `let`-bindings. In the
+following, we use `δ` to range over _variable assignments_, written
+`x1:p1,...,xn:pn`, which are used to map variables to compositions of
+projections. When `δ = x1:p1,...,xn:pn`, we write `δ ○ p` to mean
+`x1:(p1 ○ p),...,xn:(pn ○ p)`. When `e` is an expression and `δ` is a
+variable assignment, we define the _point-free translation_ of `e`,
+written `|e|δ`, as follows:
+
+                  |x|δ   =   δ(x)
+	              |r|δ   =   K r
+                |⍴ e|δ   =   ⍴ ○ |e|δ
+	        |e1 ◇ e2|δ   =   ◇ ○ (|e1|δ × |e2|δ) ○ Δ
+	|let x = e in e'|δ   =   |e'|(δ ○ π 2, x:π 1) ○ (|e|δ × Id) ○ Δ
+	       |(e1, e2)|δ   =   (|e1|δ × |e2|δ) ○ Δ
+	          |π i e|δ   =   π i ○ |e|δ
+			    |(e)|δ   =   |e|δ
+
+The result of the translation is a point-free expression. We shall not
+here provide type systems for expressions and point-free
+expressions. Notice, however, that the point-free translation of an
+expression `e` assumes that the provided variable assignment gives
+projection definitions for all the free identifiers of `e`.
 
 ## Linear maps
 
@@ -120,9 +151,9 @@ Linear maps are defined according to the following grammar:
         | m • m | (e◇) | (◇e) | (m)
 
 Here `◇` represents bi-linear functions and `⊕` represents the
-linear-map counterpart of the point-free `×` operator. As for
-point-free notation, we can define the semantics of linear-map
-representations as follows:
+linear-map counterpart of the point-free `×` operator. Similar to how
+we define the semantics of point-free expressions, we define
+the semantics of linear-map representations as follows:
 
     ⟦Δ⟧  : V ↦ V × V
          = λx.(x,x)
@@ -143,6 +174,10 @@ representations as follows:
 
     ⟦(◇e)⟧  : V ↦ V
          = λx.x◇⟦e⟧
+
+## Differentiation
+
+Differentiation is defined on point-free expressions
 
 ## Other Examples
 
