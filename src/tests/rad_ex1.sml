@@ -25,7 +25,7 @@ fun ex {name, e, arg, dy} =
         val fM = M >>= (fn (_,l) => ret l)
         val () = print ("  f' " ^ V.pp arg ^ " =\n" ^ ppM L.pp fM ^ "\n")
 
-        val rM = fM >>= (ret o L.transp)
+        val rM = fM >>= (ret o L.adjoint)
         val () = print ("  f^ " ^ V.pp arg ^ " =\n" ^ ppM L.pp rM ^ "\n")
 
         val gM = rM >>= (fn l => L.eval l dy)

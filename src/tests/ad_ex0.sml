@@ -51,6 +51,9 @@ val () = try_ex {name="ex3", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.R 3.0,V.R 1.0],
                  expected=SOME(V.R 3.25714130386, V.R 1.33333333333)}
 val () = try_ex {name="ex4", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.R 3.0,V.R 1.0], d=V.T[V.R 0.0,V.R 1.0],
                  expected=SOME(V.R 3.25714130386, V.R 2.45969769413)}
+
+val () = try_ex {name="ex5", e=lett (8, ln x1 + x1*x2, X 8 - sin x2 + X 8), arg=V.T[V.R 3.0,V.R 1.0], d=V.T[V.R 0.0,V.R 1.0],
+                 expected=SOME(V.R 7.35575359253, V.R 5.45969769413)}
 end
 
 local open F.DSL

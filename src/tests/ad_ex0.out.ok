@@ -41,6 +41,16 @@ Trying ex: ex4
   f'((3.0,1.0))((0.0,1.0)) =
     2.45969769413: OK
 
+Trying ex: ex5
+  e = (let x8 = (ln(x1)+(x1*x2)) in ((x8+~(sin(x2)))+x8))
+  f_unopt = (((+) o ((((+) o ((pi_1/2 x (~ o (sin o (pi_2/2 o pi_2/2)))) o dup)) x pi_1/2) o dup)) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x id) o dup))
+  f = (((+) o ((((+) o ((pi_1/2 x (~ o (sin o (pi_2/2 o pi_2/2)))) o dup)) x pi_1/2) o dup)) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x id) o dup))
+  e (from f) = (((ln(x1)+(x1*x2))+~(sin(x2)))+(ln(x1)+(x1*x2)))
+  f((3.0,1.0)) = 7.35575359253: OK
+  f'((3.0,1.0)) = (+) :o: ((+) :o: (pi_1/2 :+: neg :o: (0.540302305868 *) :o: pi_2/2 :o: pi_2/2) :o: dup :+: pi_1/2) :o: dup :o: ((+) :o: ((0.333333333333 *) :o: pi_1/2 :+: (+) :o: ((* 1.0) :+: (3.0 *))) :o: dup :+: id) :o: dup
+  f'((3.0,1.0))((0.0,1.0)) =
+    5.45969769413: OK
+
 Trying fun example: fun1
   f = ((((id x ln) o dup) o (+)) o (cos x sin))
   f((1.5,2.0)) = (0.980034628493,~0.0201673727445)
@@ -87,6 +97,16 @@ Trying ex: ex4
   f'((3.0,1.0)) = (+) :o: ((+) :o: ((0.333333333333 *) :o: pi_1/2 :+: (+) :o: ((* 1.0) :+: (3.0 *))) :o: dup :+: neg :o: (0.540302305868 *) :o: pi_2/2) :o: dup
   f'((3.0,1.0))((0.0,1.0)) =
     2.45969769413: OK
+
+Trying ex: ex5
+  e = (let x8 = (ln(x1)+(x1*x2)) in ((x8+~(sin(x2)))+x8))
+  f_unopt = (((+) o ((((+) o ((pi_1/2 x (~ o (sin o (pi_2/2 o pi_2/2)))) o dup)) x pi_1/2) o dup)) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x id) o dup))
+  f = (((+) o ((((+) o ((pi_1/2 x (~ o (sin o (pi_2/2 o pi_2/2)))) o dup)) x pi_1/2) o dup)) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x id) o dup))
+  e (from f) = (((ln(x1)+(x1*x2))+~(sin(x2)))+(ln(x1)+(x1*x2)))
+  f((3.0,1.0)) = 7.35575359253: OK
+  f'((3.0,1.0)) = (+) :o: ((+) :o: (pi_1/2 :+: neg :o: (0.540302305868 *) :o: pi_2/2 :o: pi_2/2) :o: dup :+: pi_1/2) :o: dup :o: ((+) :o: ((0.333333333333 *) :o: pi_1/2 :+: (+) :o: ((* 1.0) :+: (3.0 *))) :o: dup :+: id) :o: dup
+  f'((3.0,1.0))((0.0,1.0)) =
+    5.45969769413: OK
 
 Trying fun example: fun1
   f = ((((id x ln) o dup) o (+)) o (cos x sin))

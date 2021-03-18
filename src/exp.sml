@@ -57,7 +57,7 @@ fun push f E =
     map (fn (x,g) => (x,F.Comp(g,f))) E
 
 fun init n =
-    List.tabulate(n+1, fn i => (i,F.Prj(n,i)))
+    List.tabulate(n, fn i => (i+1,F.Prj(n,i+1)))
 
 fun trans0 E e =
     case e of
@@ -70,7 +70,7 @@ fun trans0 E e =
       | Add(e1,e2) => hat F.Add (trans0 E e1,trans0 E e2)
       | Pair(e1,e2) => lrangle (trans0 E e1,trans0 E e2)
       | If (e,e1,e2) => F.If(trans0 E e,trans0 E e1,trans0 E e2)
-      | Let(i,e1,e2) => F.Comp(trans0 (add(i,F.Prj(2,0),push(F.Prj(2,1))E)) e2,
+      | Let(i,e1,e2) => F.Comp(trans0 (add(i,F.Prj(2,1),push(F.Prj(2,2))E)) e2,
                                F.Comp(F.FProd(trans0 E e1,F.Id),F.Dup))
 
 fun trans e =
@@ -118,6 +118,9 @@ structure DSL = struct
   val const : v -> e = C
   val x1 : e = X 1
   val x2 : e = X 2
+  val Y = X
+  val rec X = fn i => Y i
   val iff : e * e * e -> e = If
+  val lett : int * e * e -> e = Let
 end
 end

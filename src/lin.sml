@@ -74,21 +74,20 @@ fun eval (e:lin) (x:v) : v V.M =
                                   m1 >>= (fn m1 => eval m1 x),
                                   m2 >>= (fn m2 => eval m2 x)))
 
-(* adjoint *)
-fun transp (e:lin) : lin =
+fun adjoint (e:lin) : lin =
     case e of
         Zero => Zero
       | Id => Id
-      | Comp(g,f) => Comp(transp f,transp g)
-      | Oplus(f,g) => Oplus(transp f,transp g)
+      | Comp(g,f) => Comp(adjoint f,adjoint g)
+      | Oplus(f,g) => Oplus(adjoint f,adjoint g)
       | Lin("dup",_) => add
       | Lin("add",_) => dup
       | Lin("neg",_) => e
-      | Lin(s,f) => die ("transpose of linear function not supported: "
-                         ^ s)
+      | Lin(s,f) => die ("adjoint of linear function not supported: "
+                         ^ s ^ " - maybe you need to add a case")
       | Prj (2,1) => Comp(Oplus(Id,Zero),dup)
       | Prj (2,2) => Comp(Oplus(Zero,Id),dup)
-      | Prj (d,i) => die ("transpose of projection not supported: "
+      | Prj (d,i) => die ("adjoint of projection not supported: "
                           ^ Int.toString i ^ "/" ^ Int.toString d)
       | CurL(Prim.Mul,v) => e
       | CurR(Prim.Mul,v) => e
@@ -97,13 +96,13 @@ fun transp (e:lin) : lin =
       | CurL(Prim.Sprod,v) => e
       | CurR(Prim.Sprod,v) => CurR(Prim.Dprod,v)
       | CurL(p,v) =>
-        die ("transp.CurL problem: " ^
+        die ("adjoint.CurL problem: " ^
              Prim.pp_bilin p ^ "; v=" ^ V.pp v)
       | CurR(p,v) =>
-        die ("transp.CurR problem: " ^
+        die ("adjoint.CurR problem: " ^
              Prim.pp_bilin p ^ "; v=" ^ V.pp v)
       | If(v,m1,m2) => If(v,
-                          m1 >>= (ret o transp),
-                          m2 >>= (ret o transp))
+                          m1 >>= (ret o adjoint),
+                          m2 >>= (ret o adjoint))
 
 end

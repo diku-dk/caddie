@@ -19,6 +19,8 @@ signature EXP = sig
     val const : v -> e
     val x1 : e
     val x2 : e
+    val X : int -> e
     val iff : e * e * e -> e
+    val lett : int * e * e -> e
   end
 end

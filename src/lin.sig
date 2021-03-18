@@ -23,5 +23,5 @@ signature LIN = sig
   val pp    : lin -> string
   val eval  : lin -> v -> v M
 
-  val transp : lin -> lin
+  val adjoint : lin -> lin
 end

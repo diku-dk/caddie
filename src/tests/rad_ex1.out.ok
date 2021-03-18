@@ -90,3 +90,40 @@ Trying example: ex5
     let v12 = (~(sin(x2)) * (x1 * v10))
     in (v11,v12)
 
+Trying example: ex6
+  e = (x2*~((if x1 then (x2*x1) else sin(x2))))
+  f_unopt = ((*) o ((pi_2/2 x (~ o (if pi_1/2 then ((*) o ((pi_2/2 x pi_1/2) o dup)) else (sin o pi_2/2)))) o dup))
+  f = ((*) o ((pi_2/2 x (~ o (if pi_1/2 then ((*) o ((pi_2/2 x pi_1/2) o dup)) else (sin o pi_2/2)))) o dup))
+  Differentiating:
+  f (x1,x2) =
+    let v13 = ~((if x1 then
+  (x2 * x1)
+else
+  sin(x2)))
+    in (x2 * v13)
+  f' (x1,x2) =
+    let v13 = ~((if x1 then
+  (x2 * x1)
+else
+  sin(x2)))
+    in (+) :o: ((* v13) :+: (x2 *)) :o: (pi_2/2 :+: neg :o: (if x1 then   (+) :o: ((* x1) :+: (x2 *)) :o: (pi_2/2 :+: pi_1/2) :o: dup else   (cos(x2) *) :o: pi_2/2)) :o: dup
+  f^ (x1,x2) =
+    let v13 = ~((if x1 then
+  (x2 * x1)
+else
+  sin(x2)))
+    in (+) :o: ((zero :+: id) :o: dup :+: (if x1 then   (+) :o: ((zero :+: id) :o: dup :+: (id :+: zero) :o: dup) :o: ((* x1) :+: (x2 *)) :o: dup else   (zero :+: id) :o: dup :o: (cos(x2) *)) :o: neg) :o: ((* v13) :+: (x2 *)) :o: dup
+  f^ (x1,x2) 1.0 =
+    let v13 = ~((if x1 then
+  (x2 * x1)
+else
+  sin(x2)))
+    in ((0.0,v13) + (if x1 then
+  let v15 = ~(x2)
+  let v16 = (v15 * x1)
+  let v17 = (x2 * v15)
+  in (v17,v16)
+else
+  let v18 = (cos(x2) * ~(x2))
+  in (0.0,v18)))
+
