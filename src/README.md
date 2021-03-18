@@ -90,7 +90,7 @@ operators (◇) are the following:
     ⍴ ::= ln | sin | cos | exp | pow r | ~
     ◇ ::= + | * | -
 
-Expressions take the following form:
+Expressions take the following forms:
 
     e ::= r | x | ⍴ e | e ◇ e | (e,e) | π i e | (e)
         | let x = e in e
@@ -141,11 +141,23 @@ The result of the translation is a point-free expression. We shall not
 here provide type systems for expressions and point-free
 expressions. Notice, however, that the point-free translation of an
 expression `e` assumes that the provided variable assignment gives
-projection definitions for all the free identifiers of `e`.
+definitions (e.g., projections from the main argument tuple) for all
+the free identifiers of `e`.
 
 ## Linear maps
 
-Linear maps are defined according to the following grammar:
+Let `V` and `W` be vector spaces over a field `K`. Semantically then,
+a function `f` from `V` to `W` is a _linear map_, written `f: V → W`,
+if the following two properties hold:
+
+1. `f(x+y) = f(x) + f(y)`    forall `x, y ∈ V`
+2. `f(c*x) = c*f(x)`         forall `c ∈ K, x ∈ V`
+
+In the following, we shall define a language for composing linear maps
+from simpler linear maps. The composed maps are then linear by
+construction.
+
+We define linear maps  according to the following grammar:
 
     m ::= Δ | (+) | ~ | π i | 0 | Id | m ⊕ m
         | m • m | (e◇) | (◇e) | (m)
@@ -175,9 +187,14 @@ the semantics of linear-map representations as follows:
     ⟦(◇e)⟧  : V ↦ V
          = λx.x◇⟦e⟧
 
+By giving a grammar for linear maps, and by treating them as separate
+semantic objects, we an later choose different representations for
+them, such as a combination of composition of dense and sparse
+matrices.
+
 ## Differentiation
 
-Differentiation is defined on point-free expressions
+Differentiation is defined on point-free expressions.
 
 ## Other Examples
 
