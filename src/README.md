@@ -378,3 +378,21 @@ conditional point-free notation:
         ret ( if e then C1 e1 else C2 e2,
               if e then m1 else m2)
         ))
+
+## Array Combinators
+
+    e ::= ... | map (λx.e) e | repl e e
+
+	p ::= ... | map p | repl
+
+    m ::= ... | repl e
+
+
+Translation to point-free notation:
+
+    |map (λx.e₁) e₂|δ   =   map (|e₁|(δ ○ π₂, x: π₁)) ○ (|e₂|δ × Id) ○ Δ
+
+
+Questions:
+
+1. Can we differentiate `map p`?
