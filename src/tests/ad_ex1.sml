@@ -3,10 +3,10 @@ structure Ad = AD(TermVal)
 open Ad
 structure V = TermVal
 
-fun try_ex {name, e, arg, dx} =
+fun try_ex {name, e, par, arg, dx} =
     let val () = print ("Trying example: " ^ name ^ "\n")
         val () = print ("  e = " ^ E.pp e ^ "\n")
-        val f1 = E.trans e
+        val f1 = E.trans par e
         val () = print ("  f_unopt = " ^ F.pp f1 ^ "\n")
         val f = F.opt f1
         val () = print ("  f = " ^ F.pp f ^ "\n")
@@ -38,17 +38,17 @@ fun try_fun {name, f, arg, d} =
 
 local open E.DSL
 in
-val () = try_ex {name="t1", e=ln (sin x1), arg=V.T[V.Var "x1"], dx=V.T[V.R 1.0]}
-val () = try_ex {name="t2", e=x1*x2, arg=V.T[V.Var "x1",V.Var "x2"], dx=V.T[V.R 1.0,V.R 0.0]}
-val () = try_ex {name="t3_1", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"],
+val () = try_ex {name="t1", e=ln (sin x1), par=["x1"], arg=V.T[V.Var "x1"], dx=V.T[V.R 1.0]}
+val () = try_ex {name="t2", e=x1*x2, par=["x1","x2"], arg=V.T[V.Var "x1",V.Var "x2"], dx=V.T[V.R 1.0,V.R 0.0]}
+val () = try_ex {name="t3_1", e=ln x1 + x1*x2 - sin x2, par=["x1","x2"], arg=V.T[V.Var "x1",V.Var "x2"],
                  dx=V.T[V.R 1.0,V.R 0.0]}
-val () = try_ex {name="t3_2", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"],
+val () = try_ex {name="t3_2", e=ln x1 + x1*x2 - sin x2, par=["x1","x2"], arg=V.T[V.Var "x1",V.Var "x2"],
                  dx=V.T[V.R 0.0,V.R 1.0]}
-val () = try_ex {name="t4", e=ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"],
+val () = try_ex {name="t4", e=ln x1 + x1*x2 - sin x2, par=["x1","x2"], arg=V.T[V.Var "x1",V.Var "x2"],
                  dx=V.T[V.Var "dx1",V.Var "dx2"]}
-val () = try_ex {name="t4'", e=ln x1 + (x1*x2 - sin x2), arg=V.T[V.Var "x1",V.Var "x2"],
+val () = try_ex {name="t4'", e=ln x1 + (x1*x2 - sin x2), par=["x1","x2"], arg=V.T[V.Var "x1",V.Var "x2"],
                  dx=V.T[V.Var "dx1",V.Var "dx2"]}
-val () = try_ex {name="t5", e= ~ (sin x1), arg=V.T[V.Var "x1"], dx=V.T[V.Var "dx1"]}
+val () = try_ex {name="t5", e= ~ (sin x1), par=["x1"], arg=V.T[V.Var "x1"], dx=V.T[V.Var "dx1"]}
 end
 
 local open F.DSL

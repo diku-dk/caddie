@@ -1,0 +1,7 @@
+
+local $(SML_LIB)/basis/basis.mlb
+      lib/github.com/diku-dk/sml-parse/parse.mlb
+      lib/github.com/diku-dk/sml-parse/simple_token.mlb
+in
+   ast.sml
+end

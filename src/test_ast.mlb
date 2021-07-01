@@ -1,0 +1,6 @@
+
+local $(SML_LIB)/basis/basis.mlb
+      ast.mlb
+in
+   test_ast.sml
+end

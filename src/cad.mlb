@@ -1,0 +1,8 @@
+local
+  $(SML_LIB)/basis/basis.mlb
+  ad.mlb
+  ast.mlb
+  cmdargs.sml
+in
+  cad.sml
+end

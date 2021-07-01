@@ -8,11 +8,11 @@ val ret = V.ret
 
 fun ppM pp M = V.ppM "    " pp M
 
-fun ex {name, e, arg, dy} =
+fun ex {name, e, par, arg, dy} =
     let val () = print ("Trying example: " ^ name ^ "\n")
         val () = print ("  e = " ^ E.pp e ^ "\n")
 
-        val f1 = E.trans e
+        val f1 = E.trans par e
         val () = print ("  f_unopt = " ^ F.pp f1 ^ "\n")
 
         val f = F.opt f1
@@ -37,22 +37,22 @@ fun ex {name, e, arg, dy} =
 
 local open E.DSL
 in
-val () = ex {name="ex1", e= ln (sin x1), arg=V.Var "x1", dy=V.R 1.0}
+val () = ex {name="ex1", e= ln (sin x1), par=["x1"], arg=V.Var "x1", dy=V.R 1.0}
 
-val () = ex {name="ex2", e= x1*x2, arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
+val () = ex {name="ex2", e= x1*x2, par=["x1","x2"], arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
 
-val () = ex {name="ex3", e= ln x1 + x1*x2 - sin x2, arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
+val () = ex {name="ex3", e= ln x1 + x1*x2 - sin x2, par=["x1","x2"], arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0}
 
 val () = ex {name="ex4", arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0,
-             e= (ln x1 + x1*x2 - sin x2) * (x1 + x2)
+             e= (ln x1 + x1*x2 - sin x2) * (x1 + x2), par=["x1","x2"]
             }
 
 val () = ex {name="ex5", arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0,
-             e= ln (x1 * cos x2)
+             e= ln (x1 * cos x2), par=["x1","x2"]
             }
 
 val () = ex {name="ex6", arg=V.T[V.Var "x1",V.Var "x2"], dy=V.R 1.0,
-             e=  x2*(~(iff(x1,x2*x1,sin x2)))
+             e=  x2*(~(iff(x1,x2*x1,sin x2))), par=["x1","x2"]
             }
 
 end
