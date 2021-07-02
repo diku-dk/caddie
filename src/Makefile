@@ -1,4 +1,6 @@
 
+MLCOMP?=mlkit
+
 .PHONY: prepare
 prepare:
 	smlpkg sync
@@ -8,7 +10,7 @@ all: cad
 
 .PHONY: cad
 cad:
-	mlkit -output $@ cad.mlb
+	$(MLCOMP) -output $@ cad.mlb
 
 .PHONY: test
 test:

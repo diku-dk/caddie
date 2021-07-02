@@ -35,7 +35,7 @@ signature CMD_ARGS = sig
 
   val processOptions : unit -> string list
 
-  val printUsageExit : int -> unit   (* print usage and exit with error code *)
+  val printUsageExit : OS.Process.status -> unit   (* print usage and exit with error code *)
 end
 
 structure CmdArgs :> CMD_ARGS = struct
@@ -179,10 +179,10 @@ fun processOptions () : string list =
                        SOME(x, _, NONE) =>
                        if x = #1(!version) then
                          ( println (#2(!version))
-                         ; OS.Process.exit 0
+                         ; OS.Process.exit OS.Process.success
                          )
                        else if x = #1(!usage) then
-                         printUsageExit 0
+                         printUsageExit OS.Process.success
                        else process rest
                      | SOME(_, _, SOME _) =>
                        (case rest of
@@ -196,6 +196,6 @@ fun processOptions () : string list =
               | nil => nil
         val args = process cmdargs
     in args
-    end handle Fail s => (println s; OS.Process.exit ~1)
+    end handle Fail s => (println s; OS.Process.exit OS.Process.failure)
 
 end

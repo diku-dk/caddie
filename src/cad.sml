@@ -92,7 +92,7 @@ fun main () =
     end handle Fail msg =>
                ( println ("** ERROR: " ^ msg)
                ; println ("** ERROR: Pass the --help option for assistance")
-               ; OS.Process.exit ~1
+               ; OS.Process.exit OS.Process.failure
                )
 
 val () = main ()
