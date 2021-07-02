@@ -13,7 +13,7 @@ fun try_fun {name, f, arg, d} =
         val () = print ("  " ^ name ^ " = " ^ F.pp f ^ "\n")
 
         val () = print "  Differentiating:\n"
-        val M = D.diffM f arg
+        val M = D.diffM nil f arg
         val () = print ("  f " ^ V.pp arg ^ " =\n" ^ ppM (fn (r,_) => V.pp r) M ^ "\n")
 
         val fM = M >>= (fn (_,l) => ret l)

@@ -18,7 +18,7 @@ fun ex {name, e, par, arg, d, expected} =
         val () = print ("  f = " ^ F.pp f ^ "\n")
         val e' = E.snart par f
         val () = print ("  e (from f) = " ^ E.pp e' ^ "\n")
-        val (r,l) = D.diff f arg
+        val (r,l) = D.diff nil f arg
         val l = L.adjoint l
         val () = print ("  f(" ^ V.pp arg ^ ") = " ^ V.pp r ^ pp_expected expected (#1) r ^ "\n")
         val () = print ("  f'(" ^ V.pp arg ^ ") = " ^ L.pp l ^ "\n")

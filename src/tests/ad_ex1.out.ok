@@ -4,9 +4,9 @@
 Trying example: t1
   e = ln(sin(x1))
   f_unopt = (ln o (sin o pi_1/1))
-  f = (ln o (sin o pi_1/1))
+  f = (ln o sin)
   f (x1) = (ln(sin(x1)))
-  f' (x1) = ((pow(~1.0)(sin(x1))) *) :o: ((cos(x1)) *) :o: id
+  f' (x1) = ((pow(~1.0)(sin(x1))) *) :o: ((cos(x1)) *)
   f' (x1) (1.0) =
     ((pow(~1.0)(sin(x1)) * cos(x1)))
 Trying example: t2
@@ -52,9 +52,9 @@ Trying example: t4'
 Trying example: t5
   e = ~(sin(x1))
   f_unopt = (~ o (sin o pi_1/1))
-  f = (~ o (sin o pi_1/1))
+  f = (~ o sin)
   f (x1) = (~(sin(x1)))
-  f' (x1) = neg :o: ((cos(x1)) *) :o: id
+  f' (x1) = neg :o: ((cos(x1)) *)
   f' (x1) (dx1) =
     (~((cos(x1) * dx1)))
 Trying example: fun1

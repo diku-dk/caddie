@@ -10,7 +10,7 @@ fun try_ex {name, e, par, arg, dx} =
         val () = print ("  f_unopt = " ^ F.pp f1 ^ "\n")
         val f = F.opt f1
         val () = print ("  f = " ^ F.pp f ^ "\n")
-        val (r,l) = D.diff f arg
+        val (r,l) = D.diff nil f arg
         val () = print ("  f " ^ V.pp arg ^ " = " ^ V.pp r ^ "\n")
         val () = print ("  f' " ^ V.pp arg ^ " = " ^ L.pp l ^ "\n")
         val rM = L.eval l dx
@@ -23,7 +23,7 @@ fun try_ex {name, e, par, arg, dx} =
 fun try_fun {name, f, arg, d} =
     let val () = print ("Trying example: " ^ name ^ "\n")
         val () = print ("  " ^ name ^ " = " ^ F.pp f ^ "\n")
-        val (r,l) = D.diff f arg
+        val (r,l) = D.diff nil f arg
         val () = print ("  " ^ name ^ " " ^ V.pp arg ^ " = " ^ V.pp r ^ "\n")
         val () = print ("  " ^ name ^ "' " ^ V.pp arg ^ " = " ^ L.pp l ^ "\n")
         val () = print "Now evaluating\n"

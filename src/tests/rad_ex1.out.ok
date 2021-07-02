@@ -4,14 +4,14 @@
 Trying example: ex1
   e = ln(sin(x1))
   f_unopt = (ln o (sin o pi_1/1))
-  f = (ln o (sin o pi_1/1))
+  f = (ln o sin)
   Differentiating:
   f x1 =
     ln(sin(x1))
   f' x1 =
-    (pow(~1.0)(sin(x1)) *) :o: (cos(x1) *) :o: id
+    (pow(~1.0)(sin(x1)) *) :o: (cos(x1) *)
   f^ x1 =
-    id :o: (cos(x1) *) :o: (pow(~1.0)(sin(x1)) *)
+    (cos(x1) *) :o: (pow(~1.0)(sin(x1)) *)
   f^ x1 1.0 =
     (cos(x1) * pow(~1.0)(sin(x1)))
 

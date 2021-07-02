@@ -4,10 +4,10 @@
 Trying ex: ex1
   e = ln(sin(x1))
   f_unopt = (ln o (sin o pi_1/1))
-  f = (ln o (sin o pi_1/1))
+  f = (ln o sin)
   e (from f) = ln(sin(x1))
   f(3.0) = ~1.95814462961: OK
-  f'(3.0) = (7.08616739574 *) :o: (~0.9899924966 *) :o: id
+  f'(3.0) = (7.08616739574 *) :o: (~0.9899924966 *)
   f'(3.0)(1.0) =
     ~7.01525255143: OK
 
@@ -61,10 +61,10 @@ Trying fun example: fun1
 Trying ex: ex1
   e = ln(sin(x1))
   f_unopt = (ln o (sin o pi_1/1))
-  f = (ln o (sin o pi_1/1))
+  f = (ln o sin)
   e (from f) = ln(sin(x1))
   f(3.0) = ~1.95814462961: OK
-  f'(3.0) = (7.08616739574 *) :o: (~0.9899924966 *) :o: id
+  f'(3.0) = (7.08616739574 *) :o: (~0.9899924966 *)
   f'(3.0)(1.0) =
     ~7.01525255143: OK
 

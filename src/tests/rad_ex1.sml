@@ -19,7 +19,7 @@ fun ex {name, e, par, arg, dy} =
         val () = print ("  f = " ^ F.pp f ^ "\n")
 
         val () = print "  Differentiating:\n"
-        val M = D.diffM f arg
+        val M = D.diffM nil f arg
         val () = print ("  f " ^ V.pp arg ^ " =\n" ^ ppM (fn (r,_) => V.pp r) M ^ "\n")
 
         val fM = M >>= (fn (_,l) => ret l)
