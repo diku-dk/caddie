@@ -22,6 +22,9 @@ val () = CmdArgs.addUsage ("-help", "options... file1.cad ... fileN.cad")
 
 val () = CmdArgs.addVersion ("-version", "Combinatory AD (CAD) v0.0.1")
 
+val print_exp_p = CmdArgs.addFlag ("-Pexp", SOME ["Print internal expression program."])
+val print_pointfree_p = CmdArgs.addFlag ("-Ppointfree", SOME ["Print point free internal expression program."])
+
 val srcs = CmdArgs.processOptions()
 
 fun debug s =
@@ -60,9 +63,12 @@ fun parseEval () =
     in (prg, exp_opt)
     end
 
+(* Instantiate AD framework *)
 structure Ad = AD(TermVal)
 open Ad
 structure V = TermVal
+
+(* Compile AST representation into AD framework expression representation *)
 
 fun compile (prg, exp_opt) =
     let
@@ -80,14 +86,35 @@ fun compile (prg, exp_opt) =
             | Ast.App("exp",e) => E.DSL.exp(ce e)
             | _ => raise Fail "not implemented"
       fun cf (f,x,e:Ast.exp) : string*string*E.e =
-            (f,x,ce e)
-    in List.map cf prg
+          (f,x,ce e)
+      val () = debug("Compiling program")
+      val prg' = List.map cf prg
+      val () = if print_exp_p() then
+                 ( println("Internal expression program:")
+                 ; List.app (fn (f,x,e) => println (" " ^ f ^ "(" ^ x ^ ") = " ^ E.pp e)) prg'
+                 )
+               else ()
+
+    in prg'
     end
 
+(* Translate expression programs into point-free notation *)
+fun translate prg =
+    let fun transl (f,x,e) = (f, E.trans [x] e)
+        val () = debug ("Translating program")
+        val prg' = map transl prg
+        val () = if print_pointfree_p() then
+                   ( println("Point free notation:")
+                   ; List.app (fn (f,e) => println (" " ^ f ^ " = " ^ F.pp e)) prg'
+                   )
+                 else ()
+    in prg'
+    end
 
 fun main () =
-    let val parseResult = parseEval()
-        val _ = compile parseResult
+    let val parseRes = parseEval()
+        val compRes = compile parseRes
+        val transRes = translate compRes
     in ()
     end handle Fail msg =>
                ( println ("** ERROR: " ^ msg)
