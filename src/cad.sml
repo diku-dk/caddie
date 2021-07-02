@@ -84,7 +84,9 @@ fun compile (prg, exp_opt) =
             | Ast.App("sin",e) => E.DSL.sin(ce e)
             | Ast.App("cos",e) => E.DSL.cos(ce e)
             | Ast.App("exp",e) => E.DSL.exp(ce e)
-            | _ => raise Fail "not implemented"
+            | Ast.Tuple es => E.DSL.tup (List.map ce es)
+            | Ast.Prj(i,e) => E.DSL.prj(i,ce e)
+            | Ast.App(f,e) => E.DSL.apply(f,ce e)
       fun cf (f,x,e:Ast.exp) : string*string*E.e =
           (f,x,ce e)
       val () = debug("Compiling program")
@@ -100,7 +102,8 @@ fun compile (prg, exp_opt) =
 
 (* Translate expression programs into point-free notation *)
 fun translate prg =
-    let fun transl (f,x,e) = (f, E.trans [x] e)
+    let fun transl (f,x,e) =
+            (f, F.opt(E.trans [x] e))
         val () = debug ("Translating program")
         val prg' = map transl prg
         val () = if print_pointfree_p() then

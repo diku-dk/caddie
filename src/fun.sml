@@ -14,6 +14,7 @@ datatype f =
        | Uprim of Prim.uprim
        | Bilin of Prim.bilin
        | If of f * f * f
+       | NamedFun of string
 
 fun pp e =
     case e of
@@ -21,12 +22,13 @@ fun pp e =
       | Id => "id"
       | Prj (d,i) => "pi_" ^ Int.toString i ^ "/" ^ Int.toString d
       | Add => "(+)"
-      | K v => V.pp v
+      | K v => "K " ^ V.pp v
       | FProd(f,g) => "(" ^ pp f ^ " x " ^ pp g ^ ")"
       | Dup => "dup"
       | Uprim p => Prim.pp_uprim p
       | Bilin opr => "(" ^ Prim.pp_bilin opr ^ ")"
       | If(f,g,h) => "(if " ^ pp f ^ " then " ^ pp g ^ " else " ^ pp h ^ ")"
+      | NamedFun f => f
 
 local val t = ref 0
 in fun tick_reset() = t := 0
@@ -37,6 +39,7 @@ end
 fun opt0 e =
     case e of
         Comp(FProd(Prj(2,1),Prj(2,2)),Dup) => (tick(); Id)
+      | Prj(1,1) => (tick(); Id)
       | Comp(Id,f) => (tick(); opt0 f)
       | Comp(f,Id) => (tick(); opt0 f)
       | Comp(f,g) => Comp(opt0 f,opt0 g)
@@ -65,5 +68,6 @@ structure DSL = struct
   fun pow r = Uprim (Prim.Pow r)
   val iff = If
   val ~ = Uprim Prim.Neg
+  val named = NamedFun
 end
 end

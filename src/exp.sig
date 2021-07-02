@@ -21,7 +21,10 @@ signature EXP = sig
     val x1 : e
     val x2 : e
     val V : var -> e
+    val tup : e list -> e
+    val prj : int * e -> e
     val iff : e * e * e -> e
     val lett : string * e * e -> e
+    val apply : string * e -> e
   end
 end

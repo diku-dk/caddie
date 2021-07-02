@@ -11,6 +11,7 @@ signature FUN = sig
        | Uprim of Prim.uprim
        | Bilin of Prim.bilin (* X*Y->Z *)
        | If of f * f * f
+       | NamedFun of string
 
   val pp  : f -> string
   val opt : f -> f
@@ -28,5 +29,6 @@ signature FUN = sig
     val dup  : f
     val id   : f
     val iff  : f * f * f -> f  (* iff : (A->R)x(A->C)x(A->C) -> A -> C *)
+    val named : string -> f
   end
 end
