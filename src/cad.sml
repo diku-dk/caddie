@@ -22,6 +22,7 @@ val () = CmdArgs.addUsage ("-help", "options... file1.cad ... fileN.cad")
 
 val () = CmdArgs.addVersion ("-version", "Combinatory AD (CAD) v0.0.1")
 
+val print_typed_p = CmdArgs.addFlag ("-Ptyped", SOME ["Print program after type inference."])
 val print_exp_p = CmdArgs.addFlag ("-Pexp", SOME ["Print internal expression program."])
 val print_pointfree_p = CmdArgs.addFlag ("-Ppointfree", SOME ["Print point free internal expression program."])
 
@@ -52,15 +53,40 @@ fun parseEval () =
                 "" => NONE
               | exp_s => SOME (exp_s, Ast.parse {srcname="arg",input=exp_s})
 
-        val () =
+        (* type inference *)
+        val (prg',TE) = Ast.tyinf_prg prg
+
+        val exp_opt' =
             case exp_opt of
-                NONE => debug ("Nothing to evaluate - exiting")
-              | SOME (exp_s, exp) =>
-                let val () = debug ("Evaluating '" ^ exp_s ^ "'")
-                    val v = Ast.eval_exp prg exp
-                in println (exp_s ^ " = " ^ Ast.pp_v v)
+                NONE => NONE
+              | SOME (s,e) =>
+                let val (e',ty) = Ast.tyinf_exp TE e
+                in SOME(s,e',ty)
                 end
-    in (prg, exp_opt)
+
+        val () =
+            if print_typed_p() then
+              ( println "Typed program:"
+              ; List.app (fn (f,x,e,(r,ty)) =>
+                             ( println (" " ^ f ^ " : " ^ Ast.pr_ty ty)
+                             ; println (" " ^ f ^ "(" ^ x ^ ") = " ^ Ast.pr_exp e)
+                             )) prg'
+              ; case exp_opt' of
+                    NONE => ()
+                  | SOME(s,e',ty) =>
+                    println (" expr : " ^ Ast.pr_ty ty ^ " = " ^ Ast.pr_exp e')
+              )
+            else ()
+
+        val () =
+            case exp_opt' of
+                NONE => debug ("Nothing to evaluate - exiting")
+              | SOME (exp_s, exp, ty) =>
+                let val () = debug ("Evaluating '" ^ exp_s ^ "'")
+                    val v = Ast.eval_exp (fn (r,_) => r) prg' exp
+                in println (" " ^ exp_s ^ " = " ^ Ast.pr_v v)
+                end
+    in (prg', exp_opt')
     end
 
 (* Instantiate AD framework *)
@@ -74,20 +100,20 @@ fun compile (prg, exp_opt) =
     let
       fun ce e =
           case e of
-              Ast.Real r => E.DSL.const (V.R r)
-            | Ast.Let(v,e1,e2) => E.DSL.lett(v,ce e1, ce e2)
-            | Ast.Add(e1,e2) => E.DSL.+(ce e1, ce e2)
-            | Ast.Sub(e1,e2) => E.DSL.-(ce e1, ce e2)
-            | Ast.Mul(e1,e2) => E.DSL.*(ce e1, ce e2)
-            | Ast.Var v => E.DSL.V v
-            | Ast.App("ln",e) => E.DSL.ln(ce e)
-            | Ast.App("sin",e) => E.DSL.sin(ce e)
-            | Ast.App("cos",e) => E.DSL.cos(ce e)
-            | Ast.App("exp",e) => E.DSL.exp(ce e)
-            | Ast.Tuple es => E.DSL.tup (List.map ce es)
-            | Ast.Prj(i,e) => E.DSL.prj(i,ce e)
-            | Ast.App(f,e) => E.DSL.apply(f,ce e)
-      fun cf (f,x,e:Ast.exp) : string*string*E.e =
+              Ast.Real(f,_) => E.DSL.const (V.R f)
+            | Ast.Let(v,e1,e2,_) => E.DSL.lett(v,ce e1, ce e2)
+            | Ast.Add(e1,e2,_) => E.DSL.+(ce e1, ce e2)
+            | Ast.Sub(e1,e2,_) => E.DSL.-(ce e1, ce e2)
+            | Ast.Mul(e1,e2,_) => E.DSL.*(ce e1, ce e2)
+            | Ast.Var(v,_) => E.DSL.V v
+            | Ast.App("ln",e,_) => E.DSL.ln(ce e)
+            | Ast.App("sin",e,_) => E.DSL.sin(ce e)
+            | Ast.App("cos",e,_) => E.DSL.cos(ce e)
+            | Ast.App("exp",e,_) => E.DSL.exp(ce e)
+            | Ast.Tuple(es,_) => E.DSL.tup (List.map ce es)
+            | Ast.Prj(i,e,_) => E.DSL.prj(i,ce e)
+            | Ast.App(f,e,_) => E.DSL.apply(f,ce e)
+      fun cf (f,x,e:(Region.reg*Ast.ty) Ast.exp,_) : string*string*E.e =
           (f,x,ce e)
       val () = debug("Compiling program")
       val prg' = List.map cf prg

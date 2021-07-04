@@ -1,3 +1,4 @@
 require {
   github.com/diku-dk/sml-parse 0.1.1 #d7b5c7ed6fe02a8f29b829143de1af768b87bb6b
+  github.com/diku-dk/sml-uref 0.0.1 #bfce9ac7ce2e98abf02036ee33d78cae105a1d70
 }
