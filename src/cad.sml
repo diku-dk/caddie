@@ -8,11 +8,14 @@ fun readFile f =
        in TextIO.closeIn is
         ; SOME c
        end handle _ => (TextIO.closeIn is; NONE)
-    end
+    end handle _ => NONE
+
+fun dieReg r s =
+    raise Fail (Region.pp r ^ ": " ^ s)
 
 (* Option specifications *)
 
-val rev_ad_p = CmdArgs.addFlag ("r", SOME ["Apply reverse mode AD."])
+val rad_p = CmdArgs.addFlag ("r", SOME ["Apply reverse mode AD."])
 
 val verbose_p = CmdArgs.addFlag ("-verbose", SOME ["Be verbose."])
 
@@ -25,6 +28,8 @@ val () = CmdArgs.addVersion ("-version", "Combinatory AD (CAD) v0.0.1")
 val print_typed_p = CmdArgs.addFlag ("-Ptyped", SOME ["Print program after type inference."])
 val print_exp_p = CmdArgs.addFlag ("-Pexp", SOME ["Print internal expression program."])
 val print_pointfree_p = CmdArgs.addFlag ("-Ppointfree", SOME ["Print point free internal expression program."])
+val print_diff_p = CmdArgs.addFlag ("-Pdiff", SOME ["Print differentiated program."])
+val print_diff_unlinearised_p = CmdArgs.addFlag ("-Pdiffu", SOME ["Print unlinearised differentiated program."])
 
 val srcs = CmdArgs.processOptions()
 
@@ -38,7 +43,7 @@ fun parse f =
     ( debug ("Reading file " ^ f)
     ; case readFile f of
           SOME input => Ast.parse_prg {srcname=f,input=input}
-        | NONE => raise Fail ("Error reading file " ^ f)
+        | NONE => raise Fail ("Cannot read file " ^ f)
     )
 
 fun parseEval () =
@@ -54,6 +59,7 @@ fun parseEval () =
               | exp_s => SOME (exp_s, Ast.parse {srcname="arg",input=exp_s})
 
         (* type inference *)
+        val () = debug "Type inference"
         val (prg',TE) = Ast.tyinf_prg prg
 
         val exp_opt' =
@@ -111,15 +117,20 @@ fun compile (prg, exp_opt) =
             | Ast.App("cos",e,_) => E.DSL.cos(ce e)
             | Ast.App("exp",e,_) => E.DSL.exp(ce e)
             | Ast.Tuple(es,_) => E.DSL.tup (List.map ce es)
-            | Ast.Prj(i,e,_) => E.DSL.prj(i,ce e)
+            | Ast.Prj(i,e,(r,_)) =>
+              let val t = #2(Ast.info_of_exp e)
+              in case Ast.un_tuple t of
+                     SOME tys => E.DSL.prj(length tys,i,ce e)
+                   | NONE => dieReg r "compile: unresolved tuple"
+              end
             | Ast.App(f,e,_) => E.DSL.apply(f,ce e)
-      fun cf (f,x,e:(Region.reg*Ast.ty) Ast.exp,_) : string*string*E.e =
-          (f,x,ce e)
+      fun cf (f,x,e:(Region.reg*Ast.ty) Ast.exp,i) : string*string*E.e*(Region.reg*Ast.ty) =
+          (f,x,ce e,i)
       val () = debug("Compiling program")
       val prg' = List.map cf prg
       val () = if print_exp_p() then
                  ( println("Internal expression program:")
-                 ; List.app (fn (f,x,e) => println (" " ^ f ^ "(" ^ x ^ ") = " ^ E.pp e)) prg'
+                 ; List.app (fn (f,x,e,_) => println (" " ^ f ^ "(" ^ x ^ ") = " ^ E.pp e)) prg'
                  )
                else ()
 
@@ -128,22 +139,104 @@ fun compile (prg, exp_opt) =
 
 (* Translate expression programs into point-free notation *)
 fun translate prg =
-    let fun transl (f,x,e) =
-            (f, F.opt(E.trans [x] e))
+    let fun transl (f,x,e,i) =
+            (f, F.opt(E.trans [x] e),i)
         val () = debug ("Translating program")
         val prg' = map transl prg
         val () = if print_pointfree_p() then
                    ( println("Point free notation:")
-                   ; List.app (fn (f,e) => println (" " ^ f ^ " = " ^ F.pp e)) prg'
+                   ; List.app (fn (f,e,i) => println (" " ^ f ^ " = " ^ F.pp e)) prg'
                    )
                  else ()
     in prg'
     end
 
+(* Differentiation *)
+
+fun differentiate prg =
+    let fun diff E nil = nil
+          | diff E ((f,e,(r,t))::rest) =
+            let val arg =
+                    case Ast.un_fun t of
+                        SOME(ty,ty') =>
+                        (case Ast.un_tuple ty of
+                             SOME tys =>
+                             V.T(List.tabulate(length tys, fn i => V.Var ("x" ^ Int.toString(i+1))))
+                           | NONE => V.Var "x")
+                      | NONE => dieReg r "expecing function type"
+                val M = D.diffM E e arg
+                val E' = (f,e)::E
+            in (f,arg,M,(r,t)) :: diff E' rest
+            end
+        val prg' = diff nil prg
+        fun ppM pp M = V.ppM "    " pp M
+        infix >>= val op >>= = V.>>=
+        val ret = V.ret
+        val () =
+            if print_diff_p() then
+              ( println "Differentiated program (linear map expression):"
+              ; List.app (fn (f,arg,M,_) =>
+                             let val fM = M >>= (fn (_,l) => ret l)
+                             in println (" " ^ f ^ " " ^ V.pp arg ^ " =")
+                              ; println (ppM (fn (r,_) => V.pp r) M)
+                              ; println (" " ^ f ^ "' " ^ V.pp arg ^ " =")
+                              ; println (ppM L.pp fM)
+                              ; println ""
+                             end) prg'
+              )
+            else ()
+    in prg'
+    end
+
+fun unlinearise prg =
+    let fun unlin (f,arg,M,(r,t)) =
+            let val d =
+                    case Ast.un_fun t of
+                        SOME(ty,ty') =>
+                        if rad_p() then
+                          (case Ast.un_tuple ty' of
+                               SOME tys =>
+                               V.T (List.tabulate(length tys,
+                                                  fn i => V.Var("dy" ^ Int.toString (i+1))))
+                             | _ => V.Var "dy")
+                        else (case Ast.un_tuple ty of
+                                  SOME tys =>
+                                  V.T (List.tabulate(length tys,
+                                                     fn i => V.Var("dx" ^ Int.toString (i+1))))
+                                | _ => V.Var "dx")
+                      | NONE => dieReg r "expecing function type"
+                infix >>= val op >>= = V.>>=
+                val ret = V.ret
+                val fM = M >>= (fn (_,l) => ret l)
+                val dM = if rad_p() then
+                           fM >>= (ret o L.adjoint)
+                         else fM
+                val gM = dM >>= (fn l => L.eval l d)
+                val gM = V.simpl gM
+            in (f,arg,d,gM,(r,t))
+            end
+        val prg' = List.map unlin prg
+        val pling = if rad_p() then "^" else "'"
+        val () =
+            if print_diff_unlinearised_p() then
+              ( println "Unlinearised differentiated program:"
+              ; List.app (fn (f,arg,d,gM,_) =>
+                             ( println (" " ^ f ^ pling ^ " " ^ V.pp arg ^ " " ^ V.pp d ^ " =")
+                             ; println (V.ppM "    " V.pp gM)
+                             ; println "")
+                         ) prg'
+              )
+            else ()
+    in prg'
+    end
+
+
 fun main () =
     let val parseRes = parseEval()
         val compRes = compile parseRes
         val transRes = translate compRes
+        val diffRes = differentiate transRes
+        val udiffRes = unlinearise diffRes
     in ()
     end handle Fail msg =>
                ( println ("** ERROR: " ^ msg)

@@ -3,6 +3,12 @@ functor Diff(V:VAL) : DIFF where type v = V.v = struct
 structure F = Fun(V)
 structure L = Lin(V)
 
+fun mapi f xs =
+    let fun loop n nil = nil
+          | loop n (x::xs) = f(x,n) :: loop (n+1) xs
+    in loop 0 xs
+    end
+
 fun die s = (print ("Error (Diff): " ^ s ^ "\n"); raise Fail s)
 
 type v = V.v
@@ -24,23 +30,23 @@ fun diff (E:env) (f:F.f) (x:v) : v * L.lin =
                 in (gfx,L.comp(g'fx,f'x))
                 end
               | F.K y => (y, L.zero)
-              | F.Add => (V.add x, L.add)
+              | F.Add => (V.add x, L.add 2)
               | F.Uprim Prim.Neg => (V.uprim Prim.Neg x, L.neg)
               | F.Uprim p => (V.uprim p x,
                               L.curL (Prim.Mul,V.uprim_diff p x))
               | F.Prj (1,i) => (x,L.id)                                  (*ok*)
               | F.Prj (d,i) => (V.prjI ("Prj" ^ Int.toString i ^ "/" ^ Int.toString d) i x, L.prj d i)
-              | F.Dup => (V.T[x,x], L.dup)
-              | F.FProd(f,g) =>
-                let val (fx,f'x) = D f (V.prjI "fprod-x" 1 x)
-                    val (gy,g'y) = D g (V.prjI "fprod-y" 2 x)
-                in (V.T[fx,gy],L.oplus(f'x,g'y))
+              | F.Dup n => (V.T(List.tabulate(n,fn _=> x)), L.dup n)
+              | F.FProd fs =>
+                let val pairs = mapi (fn (f,i) => D f (V.prjI "fprod-x" (i+1) x)) fs
+                    val (fxs,f'xs) = ListPair.unzip pairs
+                in (V.T fxs,L.oplus f'xs)
                 end
               | F.Bilin p =>
                 (V.bilin (p,x),
-                 L.comp(L.add,
-                        L.oplus(L.curR(p,V.prjI "mul-R" 2 x),
-                                L.curL(p,V.prjI "mul-L" 1 x))))
+                 L.comp(L.add 2,
+                        L.oplus[L.curR(p,V.prjI "mul-R" 2 x),
+                                L.curL(p,V.prjI "mul-L" 1 x)]))
               | F.Id => (x, L.id)
               | F.If _ => die "diff - If not supported"
               | F.NamedFun n =>
@@ -62,26 +68,25 @@ fun diffM (E:env) (f:F.f) (x:v) : (v * L.lin) M =
                   D g fx >>= (fn (gfx,g'fx) =>
                   ret (gfx,L.comp(g'fx,f'x))))
               | F.K y => ret (y, L.zero)
-              | F.Add => ret (V.add x, L.add)
+              | F.Add => ret (V.add x, L.add 2)
               | F.Uprim Prim.Neg => ret (V.uprim Prim.Neg x, L.neg)
               | F.Uprim p => ret (V.uprim p x,
                                   L.curL (Prim.Mul,V.uprim_diff p x))
               | F.Prj (1,i) => ret (x,L.id)                                  (*ok*)
               | F.Prj (d,i) => ret (V.prjI ("Prj" ^ Int.toString i ^ "/" ^ Int.toString d) i x, L.prj d i)
-              | F.Dup => V.letBind x >>= (fn x => ret (V.T[x,x], L.dup))
-              | F.FProd(f,g) =>
-                D f (V.prjI "fprod-x" 1 x) >>= (fn (fx,f'x) =>
-                D g (V.prjI "fprod-y" 2 x) >>= (fn (gy,g'y) =>
-                ret (V.T[fx,gy],L.oplus(f'x,g'y))))
+              | F.Dup n => V.letBind x >>= (fn x => ret (V.T(List.tabulate(n,fn _=> x)), L.dup n))
+              | F.FProd fs =>
+                Ds fs (List.tabulate(length fs, fn i => V.prjI "fprod-x" (i+1) x)) >>= (fn (fxs,f'xs) =>
+                ret (V.T fxs,L.oplus f'xs))
               | F.Bilin p =>
                 (case V.unT x of
                      SOME [x1,x2] =>
                      V.letBind x1 >>= (fn x1 =>
                      V.letBind x2 >>= (fn x2 =>
                      ret (V.bilin (p,V.T[x1,x2]),
-                          L.comp(L.add,
-                                 L.oplus(L.curR(p,x2),
-                                         L.curL(p,x1))))))
+                          L.comp(L.add 2,
+                                 L.oplus[L.curR(p,x2),
+                                         L.curL(p,x1)]))))
                    | _ => die "diffM: expecting pair in Bilin")
               | F.Id => ret (x, L.id)
               | F.If(f,g,h) =>
@@ -95,6 +100,13 @@ fun diffM (E:env) (f:F.f) (x:v) : (v * L.lin) M =
                 (case look E n of
                      SOME f => D f x
                    | NONE => die ("diffM: unknown function " ^ n))
+        and Ds fs xs =
+            case (fs,xs) of
+                (nil,nil) => ret (nil,nil)
+              | (f::fs,x::xs) => D f x >>= (fn (fx,f'x) =>
+                                 Ds fs xs >>= (fn (fxs, f'xs) =>
+                                 ret (fx::fxs, f'x::f'xs)))
+              | _ => die "diffM.Ds.unmatching number of functions and arguments"
     in D f x
     end
 

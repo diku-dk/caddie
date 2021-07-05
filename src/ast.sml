@@ -11,7 +11,8 @@ signature AST = sig
                   | Tuple of 'i exp list * 'i
                   | Prj of int * 'i exp * 'i
 
-  val pr_exp : 'i exp -> string
+  val pr_exp      : 'i exp -> string
+  val info_of_exp : 'i exp -> 'i
 
   type v
   val pr_v : v -> string
@@ -42,6 +43,10 @@ signature AST = sig
   val unify_ty  : Region.reg -> ty * ty -> unit           (* may raise Fail *)
   val unify_prj_ty : Region.reg -> int * ty * ty -> unit  (* (i,elemty,recordty) *)
   val pr_ty     : ty -> string
+
+  val un_tuple  : ty -> ty list option
+  val un_fun    : ty -> (ty*ty)option
+  val is_real   : ty -> bool
 
   val TEinit    : ty env
   val TEempty   : ty env
@@ -282,7 +287,7 @@ and p_ae : rexp p =
        (    ((p_var >>> p_ae) oor (fn ((v,e),r) => App(v,e,r)))
          || (p_var oor Var)
          || (p_real oor Real)
-         || (((p_symb "#" ->> p_int) >>> p_e) oor (fn ((i,e),r) => Prj(i,e,r)))
+         || (((p_symb "#" ->> p_int) >>> p_ae) oor (fn ((i,e),r) => Prj(i,e,r)))
          || ((p_seq "(" ")" p_e) oor (fn ([e],_) => e | (es,r) => Tuple (es,r)))
          || (((p_kw "let" ->> p_var) >>> ((p_symb "=" ->> p_e) >>> (p_kw "in" ->> p_e)) >>- p_kw "end") oor (fn ((v,(e1,e2)),r) => Let(v,e1,e2,r)))
        ) ts
@@ -366,6 +371,21 @@ fun tuple_ty (ts : ty list) : ty =
 fun fun_ty (t1:ty, t2:ty) : ty =
     URef.uref (Fun_ti (t1,t2))
 
+fun un_tuple (ty:ty) : ty list option =
+    case URef.!! ty of
+        Tuple_ti tys => SOME tys
+      | _ => NONE
+
+fun un_fun (ty:ty) : (ty*ty) option =
+    case URef.!! ty of
+        Fun_ti tys => SOME tys
+      | _ => NONE
+
+fun is_real (ty:ty) : bool =
+    case URef.!! ty of
+        Real_ti => true
+      | _ => false
+
 val TEinit : ty env =
     [("abs", fun_ty(real_ty,real_ty)),
      ("sin", fun_ty(real_ty,real_ty)),
@@ -446,24 +466,24 @@ fun unify_prj_ty (r:Region.reg) (i,ty,tuplety) =
         end
       | _ => dieReg r ("failed to project from non-tuple type " ^ pr_ty tuplety)
 
-fun regofe (e: Region.reg exp) : Region.reg =
+fun info_of_exp (e: 'i exp) : 'i =
     case e of
-        Real(_,r) => r
-      | Let(_,_,_,r) => r
-      | Add(_,_,r) => r
-      | Sub(_,_,r) => r
-      | Mul(_,_,r) => r
-      | Var (_,r) => r
-      | App(_,_,r) => r
-      | Tuple (_,r) => r
-      | Prj(_,_,r) => r
+        Real(_,i) => i
+      | Let(_,_,_,i) => i
+      | Add(_,_,i) => i
+      | Sub(_,_,i) => i
+      | Mul(_,_,i) => i
+      | Var (_,i) => i
+      | App(_,_,i) => i
+      | Tuple (_,i) => i
+      | Prj(_,_,i) => i
 
 fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
     let fun tyinf_rbin opr (e1,e2,r) =
             let val (e1',ty1) = tyinf_exp TE e1
                 val (e2',ty2) = tyinf_exp TE e2
-            in unify_ty (regofe e1) (ty1,real_ty)
-             ; unify_ty (regofe e2) (ty2,real_ty)
+            in unify_ty (info_of_exp e1) (ty1,real_ty)
+             ; unify_ty (info_of_exp e2) (ty2,real_ty)
              ; (opr (e1',e2',(r,real_ty)), real_ty)
             end
     in case e of

@@ -5,8 +5,8 @@ signature FUN = sig
        | Prj of int * int    (* X1*...*Xn->Xi ; Prj(n,i) *)
        | Add                 (* R*R->R *)
        | K of v              (* X -> Y *)
-       | FProd of f * f      (*A*B->C*D*)
-       | Dup                 (* X->X*X *)
+       | FProd of f list     (* A1*...*An->B1*...*Bn *)
+       | Dup of int          (* X->X*...*X *)
        | Id                  (* X -> X *)
        | Uprim of Prim.uprim
        | Bilin of Prim.bilin (* X*Y->Z *)

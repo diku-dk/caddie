@@ -8,14 +8,14 @@ signature LIN = sig
   val prj   : int -> int -> lin   (* prj dim idx *)
   val zero  : lin
   val id    : lin
-  val oplus : lin * lin -> lin
+  val oplus : lin list -> lin     (* n-ary oplus *)
   val comp  : lin * lin -> lin
   val curL  : Prim.bilin * v -> lin   (* ( v * ) *)
   val curR  : Prim.bilin * v -> lin   (* ( * v ) *)
 
   (* some linear primitives *)
-  val add   : lin
-  val dup   : lin
+  val add   : int -> lin              (* n-ary add *)
+  val dup   : int -> lin              (* n-ary dup *)
   val neg   : lin
 
   val iff   : v * lin M * lin M -> lin

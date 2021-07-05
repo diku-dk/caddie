@@ -5,10 +5,12 @@ type v = V.v
 type 'a M = 'a V.M
 
 datatype lin = Lin of string * (v -> v)
+             | Add of int
+             | Dup of int
              | Prj of int * int           (* (dim, idx) *)
              | Zero
              | Id
-             | Oplus of lin * lin
+             | Oplus of lin list
              | Comp of lin * lin
              | CurL of Prim.bilin * v
              | CurR of Prim.bilin * v
@@ -23,18 +25,22 @@ val comp = Comp
 val curL = CurL
 val curR = CurR
 
-val add = lin("add",V.add)
-val dup = lin("dup",fn v => V.T[v,v])
+val add = Add
+val dup = Dup
 val neg = lin("neg",V.uprim Prim.Neg)
 
 fun pp e =
     case e of
-        Lin("add",_) => "(+)"
+        Add 2 => "(+)"
+      | Add n => "add" ^ Int.toString n
+      | Dup 2 => "dup"
+      | Dup n => "dup" ^ Int.toString n
       | Lin(s,_) => s
       | Prj (d,i) => "pi_" ^ Int.toString i ^ "/" ^ Int.toString d
       | Zero => "zero"
       | Id => "id"
-      | Oplus(e1,e2) => "(" ^ pp e1 ^ " :+: " ^ pp e2 ^ ")"
+      | Oplus[e1,e2] => "(" ^ pp e1 ^ " :+: " ^ pp e2 ^ ")"
+      | Oplus es => "oplus(" ^ String.concatWith "," (map pp es) ^ ")"
       | Comp(e1,e2) => pp e1 ^ " :o: " ^ pp e2
       | CurL(p,v) => "(" ^ V.pp v ^ " " ^ Prim.pp_bilin p ^ ")"
       | CurR(p,v) => "(" ^ Prim.pp_bilin p ^ " " ^ V.pp v ^ ")"
@@ -50,15 +56,24 @@ fun eval (e:lin) (x:v) : v V.M =
     case e of
         Zero => ret (V.R 0.0)
       | Id => ret x
-      | Lin("dup",f) => V.letBind x >>= (ret o f)
+      | Dup n => V.letBind x >>= (ret o (fn v => V.T(List.tabulate(n,fn _ => v))))
+      | Add 2 => letBind (V.add x)
+      | Add 3 => V.letBind x >>= (ret o (fn v =>
+                                            V.add(V.T[V.add (V.T[V.prjI "Add3.1" 1 v,
+                                                                 V.prjI "Add3.2" 2 v]),
+                                                      V.prjI "Add3.3" 3 v])))
+      | Add n => die ("eval: Add " ^ Int.toString n ^ " not supported")
       | Lin(s,f) => (letBind (f x) handle X => (print ("Lin problem: " ^ s ^ "; x=" ^ V.pp x ^ "\n"); raise X))
       | Prj (d,i) => ret (V.prjI ("eval projection error (" ^ Int.toString d ^ ")") i x)
-      | Oplus(f,g) =>
+      | Oplus fs =>
         (case V.unT x of
-             SOME [x,y] => eval f x >>= (fn v1 =>
-                           eval g y >>= (fn v2 =>
-                           letBind (V.T[v1,v2])))
-           | _ => die ("eval.Oplus: expecting pair - got " ^ V.pp x))
+             SOME xs =>
+             evals fs xs >>= (fn vs =>
+             letBind (V.T vs))
+           | NONE =>
+             letBind x >>= (fn v =>
+             evals fs (List.tabulate(length fs, fn i => V.prjI "Oplus" (i+1) v)) >>= (fn vs =>
+             letBind (V.T vs))))
       | Comp(g,f) => eval f x >>= eval g
       | CurL(p,v) => letBind (V.bilin (p,V.T[v,x])
                               handle X => (print ("CurL problem: " ^
@@ -73,22 +88,26 @@ fun eval (e:lin) (x:v) : v V.M =
       | If(v,m1,m2) => ret(V.iff (v,
                                   m1 >>= (fn m1 => eval m1 x),
                                   m2 >>= (fn m2 => eval m2 x)))
+and evals fs xs =
+    case (fs,xs) of
+        (nil,nil) => ret nil
+      | (f::fs,x::xs) =>
+        eval f x >>= (fn v =>
+        evals fs xs >>= (fn vs => ret (v::vs)))
+      | _ => die "eval.oplus.different number of functions and parameters"
 
 fun adjoint (e:lin) : lin =
     case e of
         Zero => Zero
       | Id => Id
       | Comp(g,f) => Comp(adjoint f,adjoint g)
-      | Oplus(f,g) => Oplus(adjoint f,adjoint g)
-      | Lin("dup",_) => add
-      | Lin("add",_) => dup
+      | Oplus fs => Oplus(map adjoint fs)
+      | Add n => Dup n
+      | Dup n => Add n
       | Lin("neg",_) => e
       | Lin(s,f) => die ("adjoint of linear function not supported: "
                          ^ s ^ " - maybe you need to add a case")
-      | Prj (2,1) => Comp(Oplus(Id,Zero),dup)
-      | Prj (2,2) => Comp(Oplus(Zero,Id),dup)
-      | Prj (d,i) => die ("adjoint of projection not supported: "
-                          ^ Int.toString i ^ "/" ^ Int.toString d)
+      | Prj (n,i) => Comp(Oplus(List.tabulate(n,fn j => if j+1=i then Id else Zero)), dup n)
       | CurL(Prim.Mul,v) => e
       | CurR(Prim.Mul,v) => e
       | CurL(Prim.Dprod,v) => CurR(Prim.Mul,v)

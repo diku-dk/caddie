@@ -1,6 +1,14 @@
 functor Exp(structure V:VAL
             structure F:FUN
             sharing type V.v = F.v) : EXP where type f = F.f = struct
+
+(* Some utilities *)
+fun mapi f xs =
+    let fun loop n nil = nil
+          | loop n (x::xs) = f(x,n) :: loop (n+1) xs
+    in loop 0 xs
+    end
+
 type f = F.f
 type v = V.v
 type var = string
@@ -11,8 +19,8 @@ datatype e =
        | Uprim of Prim.uprim * e
        | Bilin of Prim.bilin * e * e
        | Add of e * e
-       | Pair of e * e
-       | Prj of int * e
+       | Tuple of e list
+       | Prj of int * int * e
        | If of e * e * e
        | Let of var * e * e
        | Apply of string * e
@@ -23,14 +31,18 @@ fun pp e =
       | Uprim(p,e) => Prim.pp_uprim p ^ "(" ^ pp e ^ ")"
       | Bilin(p,e1,e2) => "(" ^ pp e1 ^ Prim.pp_bilin p ^ pp e2 ^ ")"
       | Add(e1,e2) => "(" ^ pp e1 ^ "+" ^ pp e2 ^ ")"
-      | Pair(e1,e2) => "(" ^ pp e1 ^ "," ^ pp e2 ^ ")"
-      | Prj(i,e) => "#" ^ Int.toString i ^ "(" ^ pp e ^ ")"
+      | Tuple es => "(" ^ String.concatWith "," (map pp es) ^ ")"
+      | Prj(2,1,e) => "#1(" ^ pp e ^ ")"
+      | Prj(2,2,e) => "#2(" ^ pp e ^ ")"
+      | Prj(n,i,e) => "#^" ^ Int.toString n ^ " " ^ Int.toString i ^ "(" ^ pp e ^ ")"
       | If(e,e1,e2) => "(if " ^ pp e ^ " then " ^ pp e1 ^ " else " ^ pp e2 ^ ")"
-      | Let(i,e1,e2) => "(let " ^ i ^ " = " ^ pp e1 ^ " in " ^ pp e2 ^ ")"
+      | Let(x,e1,e2) => "let " ^ x ^ " = " ^ pp e1 ^ " in " ^ pp e2 ^ " end"
       | Apply (f,e) => "(" ^ f ^ "(" ^ pp e ^ "))"
 
-fun lrangle (f,g) = F.Comp(F.FProd(f,g),F.Dup)
-fun hat opr (f,g) = F.Comp(opr,lrangle(f,g))
+fun lrangle [f] = f
+  | lrangle fs = F.Comp(F.FProd fs,F.Dup (length fs))
+
+fun hat opr (f,g) = F.Comp(opr,lrangle[f,g])
 
 fun mem x xs = List.exists (fn y => x=y) xs
 
@@ -63,11 +75,11 @@ fun trans0 E e =
       | Uprim(p,e) => F.Comp (F.Uprim p, trans0 E e)
       | Bilin(p,e1,e2) => hat (F.Bilin p) (trans0 E e1,trans0 E e2)
       | Add(e1,e2) => hat F.Add (trans0 E e1,trans0 E e2)
-      | Pair(e1,e2) => lrangle (trans0 E e1,trans0 E e2)
+      | Tuple es => lrangle (map (trans0 E) es)
       | If (e,e1,e2) => F.If(trans0 E e,trans0 E e1,trans0 E e2)
       | Let(i,e1,e2) => F.Comp(trans0 (add(i,F.Prj(2,1),push(F.Prj(2,2))E)) e2,
-                               F.Comp(F.FProd(trans0 E e1,F.Id),F.Dup))
-      | Prj(i,e) => F.Comp (F.Prj(2,i),trans0 E e)
+                               F.Comp(F.FProd[trans0 E e1,F.Id],F.Dup 2))
+      | Prj(n,i,e) => F.Comp (F.Prj(n,i),trans0 E e)
       | Apply(f,e) => F.Comp (F.DSL.named f, trans0 E e)
 
 fun trans (vs:var list) e =
@@ -78,30 +90,32 @@ fun snart (vs:var list) f =
             case f of
                 F.K v => C v
               | F.Prj(1,1) => e
-              | F.Prj(_,i) => (case e of
-                                   Pair(a,b) =>
-                                   if i=1 then a
-                                   else if i=2 then b
-                                   else die ("snart.Pair.Prj(" ^ Int.toString i ^ ")")
-                                 | _ => Prj(i,e))
+              | F.Prj(n,i) => (case e of
+                                   Tuple es =>
+                                   (List.nth(es,i-1)
+                                    handle _ => die ("snart.Tuple.Prj(" ^ Int.toString i ^ ")"))
+                                 | _ => Prj(n,i,e))
               | F.Add => Add(s (F.Prj(2,1)) e,
                              s (F.Prj(2,2)) e)
               | F.Comp(f,g) => s f (s g e)
-              | F.FProd(f,g) =>
+              | F.FProd fs =>
                 (case e of
-                     Pair(a,b) => Pair(s f a, s g b)
-                   | _ => Pair(s f (Prj(1,e)),
-                               s g (Prj(2,e))))
+                     Tuple xs => Tuple(ListPair.map (fn (f,x) => s f x) (fs,xs))
+                   | _ =>
+                     let val n = length fs
+                         val ps = List.tabulate (n,
+                                                 fn i => Prj(n,i+1,e))
+                     in Tuple (ListPair.map (fn (f,p) => s f p) (fs,ps))
+                     end)
               | F.Id => e
-              | F.Dup => Pair(e,e)
+              | F.Dup n => Tuple (List.tabulate(n, fn _ => e))
               | F.Uprim p => Uprim(p,e)
               | F.Bilin p => Bilin(p,s (F.Prj(2,1)) e,s (F.Prj(2,2)) e)
               | F.If(f,g,h) => If(s f e,s g e,s h e)
               | F.NamedFun f => Apply(f,e)
     in case vs of
-           [x,y] => s f (Pair(V x, V y))
-         | [x] => s f (V x)
-         | _ => die "snart: expecting one or two parameters"
+           [x] => s f (V x)
+         | _ => s f (Tuple (map V vs))
     end
 
 structure DSL = struct
@@ -121,8 +135,7 @@ structure DSL = struct
   val rec V = fn i => Y i  (* eliminate constructor status *)
   val iff : e * e * e -> e = If
   val lett : string * e * e -> e = Let
-  fun tup [e1,e2] = Pair(e1,e2)
-    | tup _ = die "tup:expecting two elements"
+  val tup = Tuple
   val prj = Prj
   val apply = Apply
 end
