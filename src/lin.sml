@@ -54,15 +54,14 @@ val iff = If
 
 fun eval (e:lin) (x:v) : v V.M =
     case e of
-        Zero => ret (V.R 0.0)
+        Zero => ret V.Z
       | Id => ret x
-      | Dup n => V.letBind x >>= (ret o (fn v => V.T(List.tabulate(n,fn _ => v))))
-      | Add 2 => letBind (V.add x)
-      | Add 3 => V.letBind x >>= (ret o (fn v =>
-                                            V.add(V.T[V.add (V.T[V.prjI "Add3.1" 1 v,
-                                                                 V.prjI "Add3.2" 2 v]),
-                                                      V.prjI "Add3.3" 3 v])))
-      | Add n => die ("eval: Add " ^ Int.toString n ^ " not supported")
+      | Dup n => V.letBind x >>= (fn v => ret(V.T(List.tabulate(n,fn _ => v))))
+      | Add 2 => ret (V.add x)
+      | Add 3 => ret (V.add (V.T[V.add (V.T[V.prjI "Add3.1" 1 x,
+                                            V.prjI "Add3.2" 2 x]),
+                                 V.prjI "Add3.3" 3 x]))
+      | Add n => die ("eval.Add(" ^ Int.toString n ^ ") not supported")
       | Lin(s,f) => (letBind (f x) handle X => (print ("Lin problem: " ^ s ^ "; x=" ^ V.pp x ^ "\n"); raise X))
       | Prj (d,i) => ret (V.prjI ("eval projection error (" ^ Int.toString d ^ ")") i x)
       | Oplus fs =>
@@ -70,10 +69,11 @@ fun eval (e:lin) (x:v) : v V.M =
              SOME xs =>
              evals fs xs >>= (fn vs =>
              letBind (V.T vs))
-           | NONE =>
-             letBind x >>= (fn v =>
+           | NONE => die "eval.oplus")
+(*             letBind x >>= (fn v =>
              evals fs (List.tabulate(length fs, fn i => V.prjI "Oplus" (i+1) v)) >>= (fn vs =>
              letBind (V.T vs))))
+*)
       | Comp(g,f) => eval f x >>= eval g
       | CurL(p,v) => letBind (V.bilin (p,V.T[v,x])
                               handle X => (print ("CurL problem: " ^

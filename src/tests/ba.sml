@@ -26,6 +26,8 @@ fun try_fun {name, f, arg, d} =
     in ()
     end
 
+fun RVar s = V.Var s
+
 local open F.DSL
       infix x nonfix + nonfix *
 in
@@ -42,11 +44,11 @@ val op + = fn (f,g) => (op +) o (f x g) o dup
 val K1 = F.K (V.R 1.0)
 val norm = pow 0.5 o Dot o dup
 val nrm = (pow ~1.0 o norm) vscale id
-val () = try_fun {name="norm", f=norm,arg=V.Var "x",d=V.Var "dx1"}
+val () = try_fun {name="norm", f=norm,arg=RVar "x",d=RVar "dx1"}
 val () = try_fun {name="norm", f=norm,arg=V.T[V.R 3.0,V.R 4.0],d=V.T[V.R 1.0,V.R 0.0]}
-val () = try_fun {name="nrm", f=nrm,arg=V.Var "x",d=V.Var "dx1"}
-val () = try_fun {name="nrm", f=nrm,arg=V.T[V.Var "x1",V.Var "x2",V.Var "x3"],
-                  d=V.T[V.Var "dx1",V.Var "dx2",V.Var "dx3"]}
+val () = try_fun {name="nrm", f=nrm,arg=RVar "x",d=RVar "dx1"}
+val () = try_fun {name="nrm", f=nrm,arg=V.T[RVar "x1",RVar "x2",RVar "x3"],
+                  d=V.T[RVar "dx1",RVar "dx2",RVar "dx3"]}
 val () = try_fun {name="nrm", f=nrm,arg=V.T[V.R 2.0,V.R 3.0,V.R 5.0],
                   d=V.T[V.R 1.0,V.R 0.0,V.R 0.0]}
 
@@ -60,7 +62,7 @@ val rodriguez =
 
 val r = V.T[V.R 1.0, V.R 2.6, V.R 3.0]
 val X = V.T[V.R 10.0, V.R 20.6, V.R 30.0]
-val () = try_fun {name="rodriguez", f=rodriguez,arg=V.T[V.Var "r",V.Var "X"],d=V.T[V.Var "dr",V.Var "dX"]}
+val () = try_fun {name="rodriguez", f=rodriguez,arg=V.T[RVar "r",RVar "X"],d=V.T[RVar "dr",RVar "dX"]}
 val () = try_fun {name="rodriguez", f=rodriguez,arg=V.T[r,X],d=V.T[r,X]}
 
 val p2e =
@@ -85,7 +87,7 @@ val () = try_fun {name="distort", f=distort,
                   arg=V.T[V.T[V.R 2.0,V.R 3.0],V.T[V.R 8.0,V.R 9.0]],
                   d=V.T[V.T[V.R 2.0,V.R 3.0],V.T[V.R 8.0,V.R 9.0]]}
 
-fun lrangle (f,g) = F.Comp(F.FProd(f,g),F.Dup)
+fun lrangle (f,g) = F.Comp(F.FProd[f,g],F.Dup 2)
 
 val project (* -> R^2 *) =
     let val pi_r = F.Prj (6,1)    (* R^3 *)

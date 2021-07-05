@@ -1,4 +1,5 @@
 signature VAL = sig
+
   type v
   val R           : real -> v
   val T           : v list -> v
@@ -6,9 +7,12 @@ signature VAL = sig
 
   val unT         : v -> v list option
   val unR         : v -> real option
+  val isZ         : v -> bool
+
   val pp          : v -> string
   val prjI        : string -> int -> v -> v
   val add         : v -> v
+  val Z           : v
   val uprim       : Prim.uprim -> v -> v
   val uprim_diff  : Prim.uprim -> v -> v
   val bilin       : Prim.bilin * v -> v

@@ -42,7 +42,7 @@ Trying ex: ex4
     2.45969769413: OK
 
 Trying ex: ex5
-  e = (let x8 = (ln(x1)+(x1*x2)) in ((x8+~(sin(x2)))+x8))
+  e = let x8 = (ln(x1)+(x1*x2)) in ((x8+~(sin(x2)))+x8) end
   f_unopt = (((+) o ((((+) o ((pi_1/2 x (~ o (sin o (pi_2/2 o pi_2/2)))) o dup)) x pi_1/2) o dup)) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x id) o dup))
   f = (((+) o ((((+) o ((pi_1/2 x (~ o (sin o (pi_2/2 o pi_2/2)))) o dup)) x pi_1/2) o dup)) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x id) o dup))
   e (from f) = (((ln(x1)+(x1*x2))+~(sin(x2)))+(ln(x1)+(x1*x2)))
@@ -99,7 +99,7 @@ Trying ex: ex4
     2.45969769413: OK
 
 Trying ex: ex5
-  e = (let x8 = (ln(x1)+(x1*x2)) in ((x8+~(sin(x2)))+x8))
+  e = let x8 = (ln(x1)+(x1*x2)) in ((x8+~(sin(x2)))+x8) end
   f_unopt = (((+) o ((((+) o ((pi_1/2 x (~ o (sin o (pi_2/2 o pi_2/2)))) o dup)) x pi_1/2) o dup)) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x id) o dup))
   f = (((+) o ((((+) o ((pi_1/2 x (~ o (sin o (pi_2/2 o pi_2/2)))) o dup)) x pi_1/2) o dup)) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x id) o dup))
   e (from f) = (((ln(x1)+(x1*x2))+~(sin(x2)))+(ln(x1)+(x1*x2)))

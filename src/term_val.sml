@@ -1,12 +1,12 @@
 fun die s = (print ("Error (TermVal): " ^ s ^ "\n"); raise Fail s)
 
 structure TermVal = struct
+
 type var = string
 
-
 datatype v = R of real | T of v list | Uprim of Prim.uprim * v
-           | Add of v*v | Var of var | Bilin of Prim.bilin * v * v
-           | If of v * v M * v M
+           | Add of v * v | Var of var | Bilin of Prim.bilin * v * v
+           | If of v * v M * v M | Z
 withtype 'a M = 'a * (string * v)list
 
 val VarOpt = SOME Var
@@ -16,6 +16,9 @@ fun unT (T xs) = SOME xs
 
 fun unR (R v) = SOME v
   | unR _ = NONE
+
+fun isZ Z = true
+  | isZ _ = false
 
 fun ppM0 (ind:string) (pp:v->string) (pp0:'a -> string) ((x,bs): 'a M) : string =
     case bs of
@@ -32,6 +35,7 @@ fun pp v =
       | Bilin(p,v1,v2) => "(" ^ pp v1 ^ " " ^ Prim.pp_bilin p ^ " " ^ pp v2 ^ ")"
       | Var v => v
       | If(v,m1,m2) => "(if " ^ pp v ^ " then\n" ^ ppM0 "  " pp pp m1 ^ "\nelse\n" ^ ppM0 "  " pp pp m2 ^ ")"
+      | Z => "Z"
 
 fun ppM (ind:string) (pp0:'a -> string) (m: 'a M) : string =
     ppM0 ind pp pp0 m
@@ -40,21 +44,29 @@ fun iff (v,m1,m2) = If(v,m1,m2)
 
 fun prjI (s:string) (i:int) : v -> v =
     fn T xs => (List.nth(xs,i-1) handle _ => die (s ^ " index error"))
-     | v => die ("type error prjI(" ^ Int.toString i ^ ") - expecting tuple (" ^ s ^ ") - got " ^ pp v)
+     | v => die ("type error prjI(" ^ Int.toString i ^
+                 ") - expecting tuple (" ^ s ^ ") - got " ^ pp v)
 
-exception Stop
-fun add v =
-    case unT v of
-        SOME [R a,R b] => R (a+b)
-      | SOME [T v1,T v2] =>
-        (let fun unR (R r) = r
-               | unR _ = raise Stop
-         in T(map (R o op+) (ListPair.zip (map unR v1,map unR v2)))
-         end handle Stop => Add(T v1,T v2))
-      | SOME [v1,v2] => Add(v1,v2)
-      | _ => die ("type error add - expecting pair - got " ^ pp v)
+(* smart constructor for Add *)
+fun add (T[v1,v2]) =
+    let fun add0 (v1,v2) =
+            case (v1,v2) of
+                (Z,v2) => v2
+              | (v1,Z) => v1
+              | (R r1,R r2) => R(r1+r2)
+              | (T vs1,T vs2) =>
+                (T(ListPair.mapEq add0 (vs1,vs2))
+                 handle _ => die "add0.unequal sized tuples")
+              | (R _, T _) => die "add0.type mismatch R-T"
+              | (T _, R _) => die "add0.type mismatch T-R"
+              | _ => Add(v1,v2)
+    in add0 (v1,v2)
+    end
+  | add _ = die "add: expecting pair as argument"
 
 fun mul (R a,R b) = R (a*b)
+  | mul (Z,_) = Z
+  | mul (_,Z) = Z
   | mul (T vs1,T vs2) = T (map mul (ListPair.zip (vs1,vs2)))
   | mul (v1,v2) = Bilin(Prim.Mul,v1,v2)
 
@@ -91,6 +103,7 @@ fun bilin0 p : v * v -> v =
 
 fun uprim (p: Prim.uprim) : v -> v =
     fn R r => R (Prim.uprim p r)
+     | Z => R (Prim.uprim p 0.0)
      | T vs => T (map (uprim p) vs)
      | v => Uprim (p,v)
 
@@ -105,6 +118,8 @@ end
 fun simpl0 v =
     case v of
         Add(R r1,R r2) => (tick(); R (r1+r2))
+      | Add(Z,v2) => (tick(); simpl0 v2)
+      | Add(v1,Z) => (tick(); simpl0 v1)
       | Add(R r,v) => if Real.==(r,0.0) then (tick(); simpl0 v)
                       else Add(R r,simpl0 v)
       | Add(v,R r) => if Real.==(r,0.0) then (tick(); simpl0 v)
@@ -115,12 +130,14 @@ fun simpl0 v =
         if Real.==(r,1.0) then (tick(); simpl0 v)
         else if Real.==(r,0.0) then (tick(); R 1.0)
         else Uprim(Prim.Pow r, simpl0 v)
+      | Uprim (Prim.Neg, Z) => (tick(); Z)
       | Uprim (Prim.Neg, R r) => (tick(); R (~r))
       | Uprim (Prim.Neg, T vs) => (tick(); T (map (fn v => simpl0(Uprim(Prim.Neg, v))) vs))
       | Uprim (Prim.Neg, v) => Uprim(Prim.Neg, simpl0 v)
       | Uprim (p,v) => Uprim(p, simpl0 v)
       | T vs => T (map simpl0 vs)
       | R _ => v
+      | Z => Z
       | Var _ => v
       | Bilin(Prim.Mul,R r1,R r2) => (tick(); R (r1*r2))
       | Bilin(Prim.Mul,R r,v) => if Real.==(r,0.0) then (tick(); R 0.0)
@@ -129,6 +146,8 @@ fun simpl0 v =
       | Bilin(Prim.Mul,v,R r) => if Real.==(r,0.0) then (tick(); R 0.0)
                                  else if Real.==(r,1.0) then (tick(); simpl0 v)
                                  else Bilin(Prim.Mul,simpl0 v,R r)
+      | Bilin(Prim.Mul,Z,v2) => (tick(); Z)
+      | Bilin(Prim.Mul,v1,Z) => (tick(); Z)
       | Bilin(Prim.Mul,v1,v2) => Bilin(Prim.Mul,simpl0 v1,simpl0 v2)
       | Bilin(p,v1,v2) => Bilin(p,simpl0 v1,simpl0 v2)
       | If(v,m1,m2) => If(simpl0 v,simplM m1,simplM m2)
@@ -144,6 +163,7 @@ fun simpl1 e =
 fun eq (a,b) =
     case (a,b) of
         (R a, R b) => abs (a-b) < 0.0000001
+      | (Z,Z) => true
       | (T vs1, T vs2) => List.all (fn x => x) (List.map eq (ListPair.zip (vs1,vs2)))
       | (Var v, Var v') => v=v'
       | (Uprim (p, v), Uprim (p',v')) => Prim.eq_uprim (p,p') andalso eq (v, v')
@@ -157,6 +177,7 @@ fun subst S e =
         (case List.find (fn (k0,_) => k=k0) S of
              SOME (k0,v0) => v0
            | NONE => e)
+      | Z => Z
       | R _ => e
       | T es => T(map (subst S) es)
       | Uprim(p,e) => Uprim(p,subst S e)
@@ -207,6 +228,7 @@ fun uprim_diff (p: Prim.uprim) (x:v) : v =
 fun isComplex v =
     case v of
         R _ => false
+      | Z => false
       | Var _ => false
       | T vs => false
       | Uprim (p,v) => true

@@ -118,12 +118,12 @@ else
   (x2 * x1)
 else
   sin(x2)))
-    in ((0.0,v13) + (if x1 then
+    in ((Z,v13) + (if x1 then
   let v15 = ~(x2)
   let v16 = (v15 * x1)
   let v17 = (x2 * v15)
   in (v17,v16)
 else
   let v18 = (cos(x2) * ~(x2))
-  in (0.0,v18)))
+  in (Z,v18)))
 

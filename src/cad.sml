@@ -2,6 +2,12 @@
 
 fun println s = print (s ^ "\n")
 
+fun mapi f xs =
+    let fun loop n nil = nil
+          | loop n (x::xs) = f(x,n) :: loop (n+1) xs
+    in loop 0 xs
+    end
+
 fun readFile f =
     let val is = TextIO.openIn f
     in let val c = TextIO.inputAll is
@@ -161,8 +167,10 @@ fun differentiate prg =
                         SOME(ty,ty') =>
                         (case Ast.un_tuple ty of
                              SOME tys =>
-                             V.T(List.tabulate(length tys, fn i => V.Var ("x" ^ Int.toString(i+1))))
-                           | NONE => V.Var "x")
+                             V.T(mapi (fn (ty,i) => V.Var ("x" ^ Int.toString(i+1))) tys)
+                           | NONE =>
+                             (if Ast.is_real ty then V.Var "x"
+                              else dieReg r "expecting tuple type or type real as argument type"))
                       | NONE => dieReg r "expecing function type"
                 val M = D.diffM E e arg
                 val E' = (f,e)::E
@@ -177,10 +185,13 @@ fun differentiate prg =
               ( println "Differentiated program (linear map expression):"
               ; List.app (fn (f,arg,M,_) =>
                              let val fM = M >>= (fn (_,l) => ret l)
+                                 val rM = fM >>= (ret o L.adjoint)
                              in println (" " ^ f ^ " " ^ V.pp arg ^ " =")
                               ; println (ppM (fn (r,_) => V.pp r) M)
                               ; println (" " ^ f ^ "' " ^ V.pp arg ^ " =")
                               ; println (ppM L.pp fM)
+                              ; println (" " ^ f ^ "^ " ^ V.pp arg ^ " =")
+                              ; println (ppM L.pp rM)
                               ; println ""
                              end) prg'
               )
@@ -196,14 +207,18 @@ fun unlinearise prg =
                         if rad_p() then
                           (case Ast.un_tuple ty' of
                                SOME tys =>
-                               V.T (List.tabulate(length tys,
-                                                  fn i => V.Var("dy" ^ Int.toString (i+1))))
-                             | _ => V.Var "dy")
+                               V.T (mapi (fn (ty,i) =>
+                                             V.Var("dy" ^ Int.toString (i+1))) tys)
+                             | NONE =>
+                               if Ast.is_real ty' then V.Var "dy"
+                               else dieReg r "expecting tuple type or real type as result type")
                         else (case Ast.un_tuple ty of
                                   SOME tys =>
-                                  V.T (List.tabulate(length tys,
-                                                     fn i => V.Var("dx" ^ Int.toString (i+1))))
-                                | _ => V.Var "dx")
+                                  V.T (mapi (fn (ty,i) =>
+                                                V.Var("dx" ^ Int.toString (i+1))) tys)
+                                | NONE =>
+                                  if Ast.is_real ty then V.Var "dx"
+                                  else dieReg r "expecting tuple type or real type as argument type")
                       | NONE => dieReg r "expecing function type"
                 infix >>= val op >>= = V.>>=
                 val ret = V.ret

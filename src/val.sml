@@ -1,7 +1,9 @@
 fun die s = (print ("Error (Val): " ^ s ^ "\n"); raise Fail s)
 
 structure Val :> VAL = struct
-datatype v = R of real | T of v list
+
+datatype v = R of real | T of v list | Z
+
 val VarOpt = NONE
 fun unT (T xs) = SOME xs
   | unT _ = NONE
@@ -9,18 +11,24 @@ fun unT (T xs) = SOME xs
 fun unR (R v) = SOME v
   | unR _ = NONE
 
+fun isZ Z = true
+  | isZ _ = false
+
 fun pp v =
     case v of
         R r => Real.toString r
       | T vs => "(" ^ String.concatWith "," (map pp vs) ^ ")"
+      | Z => "Z"
 
 fun lift2 c dc f : v*v->v =
     fn (a,b) => c(f(dc a, dc b))
+
 fun lift1 c dc f : v -> v =
     fn a => c(f(dc a))
 
 val lift2R : (real*real->real) -> (v*v->v) =
     lift2 R (fn R r => r | v => die ("type error - expecting real - 2R - got " ^ pp v))
+
 val lift1R : (real->real) -> (v->v) =
     lift1 R (fn R r => r | v => die ("type error - expecting real - 1R - got " ^ pp v))
 
@@ -32,7 +40,18 @@ fun prjI (s:string) (i:int) : v -> v =
     fn T xs => (List.nth(xs,i-1) handle _ => die (s ^ " index error"))
      | v => die ("type error prjI - expecting tuple (" ^ s ^ ") - got " ^ pp v)
 
-val add = liftP "add" (lift2R (op +))
+
+val add =
+    let fun add (Z,v2) = v2
+          | add (v1,Z) = v1
+          | add (R r1,R r2) = R (r1+r2)
+          | add (T vs1, T vs2) =
+            (T (ListPair.mapEq add (vs1,vs2))
+             handle _ => die "add expects equally length tuples")
+          | add _ = die "add expects arguments of the same type"
+    in liftP "add" add
+    end
+
 fun uprim (p: Prim.uprim) : v -> v =
     fn v =>
        case unR v of
