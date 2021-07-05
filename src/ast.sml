@@ -157,7 +157,7 @@ fun pr_exp (e: 'i exp) : string =
               | App (f,e,_) => par p 8 (f ^ pr 9 e)
               | Tuple (es,_) => "(" ^ String.concatWith "," (map (pr 0) es) ^ ")"
               | Prj (i,e,_) => "#" ^ Int.toString i ^ " " ^ par p 8 (pr 8 e)
-	      | Map (x,f,es,_) => "map (\\" ^ x ^ ". " ^ pr_exp f ^ ") " ^ pr_exp es
+	      | Map (x,f,es,_) => "map (fn " ^ x ^ " => " ^ pr_exp f ^ ") " ^ pr_exp es
 	      | Iota (n,_)  => "iota " ^ Int.toString n
     in pr 0 e
     end
