@@ -4,9 +4,15 @@ structure TermVal = struct
 
 type var = string
 
-datatype v = R of real | T of v list | Uprim of Prim.uprim * v
-           | Add of v * v | Var of var | Bilin of Prim.bilin * v * v
-           | If of v * v M * v M | Z
+datatype v = R of real
+           | T of v list
+           | Uprim of Prim.uprim * v
+           | Add of v * v
+           | Var of var
+           | Bilin of Prim.bilin * v * v
+           | If of v * v M * v M
+           | Z
+           | Prj of int * v
 withtype 'a M = 'a * (string * v)list
 
 val VarOpt = SOME Var
@@ -36,6 +42,7 @@ fun pp v =
       | Var v => v
       | If(v,m1,m2) => "(if " ^ pp v ^ " then\n" ^ ppM0 "  " pp pp m1 ^ "\nelse\n" ^ ppM0 "  " pp pp m2 ^ ")"
       | Z => "Z"
+      | Prj(i,v) => "prj" ^ Int.toString i ^ "(" ^ pp v ^ ")"
 
 fun ppM (ind:string) (pp0:'a -> string) (m: 'a M) : string =
     ppM0 ind pp pp0 m
@@ -44,8 +51,7 @@ fun iff (v,m1,m2) = If(v,m1,m2)
 
 fun prjI (s:string) (i:int) : v -> v =
     fn T xs => (List.nth(xs,i-1) handle _ => die (s ^ " index error"))
-     | v => die ("type error prjI(" ^ Int.toString i ^
-                 ") - expecting tuple (" ^ s ^ ") - got " ^ pp v)
+     | v => Prj(i,v)
 
 (* smart constructor for Add *)
 fun add (T[v1,v2]) =
@@ -138,6 +144,9 @@ fun simpl0 v =
       | T vs => T (map simpl0 vs)
       | R _ => v
       | Z => Z
+      | Prj(i,T vs) => (tick();
+                        simpl0 (List.nth(vs,i-1))
+                        handle _ => die "simpl0.Prj.projection out of bound")
       | Var _ => v
       | Bilin(Prim.Mul,R r1,R r2) => (tick(); R (r1*r2))
       | Bilin(Prim.Mul,R r,v) => if Real.==(r,0.0) then (tick(); R 0.0)
@@ -151,6 +160,7 @@ fun simpl0 v =
       | Bilin(Prim.Mul,v1,v2) => Bilin(Prim.Mul,simpl0 v1,simpl0 v2)
       | Bilin(p,v1,v2) => Bilin(p,simpl0 v1,simpl0 v2)
       | If(v,m1,m2) => If(simpl0 v,simplM m1,simplM m2)
+      | Prj(i,v) => Prj(i,simpl0 v)
 and simplM (v,bs) = (simpl0 v,map (fn (x,v) => (x,simpl0 v)) bs)
 
 fun simpl1 e =
@@ -180,6 +190,7 @@ fun subst S e =
       | Z => Z
       | R _ => e
       | T es => T(map (subst S) es)
+      | Prj(i,e) => Prj(i,subst S e)
       | Uprim(p,e) => Uprim(p,subst S e)
       | Add(e1,e2) => Add(subst S e1, subst S e2)
       | Bilin(p,e1,e2) => Bilin(p,subst S e1, subst S e2)
@@ -235,6 +246,7 @@ fun isComplex v =
       | Add _ => true
       | Bilin _ => true
       | If _ => true
+      | Prj _ => true
 
 val newVar =
     let val c = ref 0

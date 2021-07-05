@@ -1,0 +1,14 @@
+(* Simple examples *)
+
+fun f1 x = ln (sin x)
+
+fun f2 x = #1 x * #2 x
+
+fun f3 x =
+  let x1 = #1 x
+  in let x2 = #2 x
+  in ln x1 + x1*x2 - sin x2
+  end
+  end
+
+fun f4 x = 0 - sin x

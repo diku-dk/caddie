@@ -571,6 +571,46 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
 
 val fresh_ty_nonfun = fresh_ty (* MEMO: add constraint *)
 
+val reg0 = (Region.botloc,Region.botloc)
+
+(* Resolve non-instantiated type variables by analysing the
+ * type constraints; non-constrained type variables are instantiated
+ * to type real. Projection constraints guide the number of elements
+ * and the element types in each tuple type. *)
+
+fun resolve_t t =
+    case URef.!! t of
+        Tvar_ti (_, cs) =>
+        let val m = List.foldl (fn (c,m) =>
+                                   case c of
+                                       NonFun => m
+                                     | ElemTy(i,_) => Int.max(i,m)) 0 cs
+            fun look j cs =
+                case cs of
+                    nil => NONE
+                  | NonFun :: cs => look j cs
+                  | ElemTy(i,t) :: cs => if j = i then SOME t
+                                         else look j cs
+        in if m = 0 then URef.::=(t, Real_ti)
+           else
+             let val m = Int.max(2,m) (* at least two elements *)
+                 val ts = List.tabulate(m, fn i => case look (i+1) cs of
+                                                       SOME t => t
+                                                     | NONE => real_ty)
+             in unify_ty reg0 (tuple_ty ts, t)
+             end
+        end
+      | Real_ti => ()
+      | Tuple_ti ts => List.app resolve_t ts
+      | Fun_ti(t1,t2) => (resolve_t t1 ; resolve_t t2)
+      | Array_ti t => resolve_t t
+
+fun resolve_e (e : (Region.reg*ty) exp) : unit =
+    let val (_,t) = info_of_exp e
+    in resolve_t t
+    end
+
+(* General type inference function *)
 fun tyinf_prg (prg: Region.reg prg) : (Region.reg*ty) prg * ty env =
     let fun tyinf TE ((f,x,e,r)::rest) (prg_acc,TEacc) =
             let val ty = fresh_ty_nonfun()
@@ -582,7 +622,12 @@ fun tyinf_prg (prg: Region.reg prg) : (Region.reg*ty) prg * ty env =
             in tyinf TE' rest (prg_acc',TEacc')
             end
           | tyinf _ nil (prg_acc,TEacc) = (rev prg_acc,TEacc)
-    in tyinf TEinit prg (nil,TEempty)
+        val (prg',TE) = tyinf TEinit prg (nil,TEempty)
+        val () = List.app (fn (_,_,e',(_,fty)) =>
+                              ( resolve_e e'
+                              ; resolve_t fty )
+                          ) prg'
+    in (prg',TE)
     end
 
 end

@@ -69,11 +69,10 @@ fun eval (e:lin) (x:v) : v V.M =
              SOME xs =>
              evals fs xs >>= (fn vs =>
              letBind (V.T vs))
-           | NONE => die "eval.oplus")
-(*             letBind x >>= (fn v =>
+           | NONE =>
+             letBind x >>= (fn v =>
              evals fs (List.tabulate(length fs, fn i => V.prjI "Oplus" (i+1) v)) >>= (fn vs =>
              letBind (V.T vs))))
-*)
       | Comp(g,f) => eval f x >>= eval g
       | CurL(p,v) => letBind (V.bilin (p,V.T[v,x])
                               handle X => (print ("CurL problem: " ^
