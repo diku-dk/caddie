@@ -232,7 +232,7 @@ fun eval (regof:'i -> Region.reg) (E:v env) (e:'i exp) : v =
 fun locOfTs nil = Region.botloc
   | locOfTs ((_,(l,_))::_) = l
 
-val kws = ["let", "in", "end", "fun", "map", "iota"]
+val kws = ["let", "in", "end", "fun", "map", "iota", "fn"]
 
 val p_int : int p =
  fn ts =>
@@ -305,7 +305,7 @@ and p_ae : rexp p =
          || ((p_seq "(" ")" p_e) oor (fn ([e],_) => e | (es,r) => Tuple (es,r)))
          || (((p_kw "let" ->> p_var) >>> ((p_symb "=" ->> p_e) >>> (p_kw "in" ->> p_e)) >>- p_kw "end") oor (fn ((v,(e1,e2)),r) => Let(v,e1,e2,r)))
          || (((p_kw "map" ->> ((p_symb "("
-                              ->> (((p_symb "!" ->> p_var) >>- p_symb ".") >>> p_e))
+                              ->> (((p_kw "fn" ->> p_var) >>- p_symb "=>") >>> p_e))
                               >>- p_symb ")")) >>> p_ae)
                               oor (fn (((x, f), e), r) => Map (x, f, e, r)))
          || ((p_kw "iota" ->> p_int) oor (fn (n, r) => Iota (n, r)))

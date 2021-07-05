@@ -10,7 +10,7 @@ val s4 = "abs (10-23)"  (* 13 *)
 val s5 = "(10,20+30*2)" (* (10,80) *)
 val s6 = "2+ #2(10,20+30*2)" (* 80 *)
 val s7 = "iota 3" (* [0, 1, 2] *)
-val s8 = "map (!x . (x * 3)) (map (!x.(x + 2)) (iota 3))"
+val s8 = "map (fn x => x * 3) (map (fn x => x + 2) (iota 3))"
 
 val e = A.parse {srcname="stdin",input=s8}
 
