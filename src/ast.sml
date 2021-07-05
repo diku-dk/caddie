@@ -10,6 +10,8 @@ signature AST = sig
                   | App of string * 'i exp * 'i
                   | Tuple of 'i exp list * 'i
                   | Prj of int * 'i exp * 'i
+                  | Map of string * 'i exp * 'i exp * 'i
+                  | Iota of int * 'i
 
   val pr_exp      : 'i exp -> string
   val info_of_exp : 'i exp -> 'i
@@ -30,6 +32,7 @@ signature AST = sig
 
   type 'i prg = (string * string * 'i exp * 'i) list
 
+  val pr_prg    : 'i prg -> string
   val eval_prg  : ('i -> Region.reg) -> 'i prg -> string -> v -> v
   val eval_exp  : ('i -> Region.reg) -> 'i prg -> 'i exp -> v
   val parse_prg : {srcname:string,input:string} -> Region.reg prg
@@ -133,6 +136,8 @@ datatype 'i exp = Real of real * 'i
                 | App of string * 'i exp * 'i
                 | Tuple of 'i exp list * 'i
                 | Prj of int * 'i exp * 'i
+                | Map of string * 'i exp * 'i exp * 'i
+                | Iota of int * 'i
 
 fun par p x s =
     if x > p then s else "(" ^ s ^ ")"
@@ -152,10 +157,12 @@ fun pr_exp (e: 'i exp) : string =
               | App (f,e,_) => par p 8 (f ^ pr 9 e)
               | Tuple (es,_) => "(" ^ String.concatWith "," (map (pr 0) es) ^ ")"
               | Prj (i,e,_) => "#" ^ Int.toString i ^ " " ^ par p 8 (pr 8 e)
+	      | Map (x,f,es,_) => "map (\\" ^ x ^ ". " ^ pr_exp f ^ ") " ^ pr_exp es
+	      | Iota (n,_)  => "iota " ^ Int.toString n
     in pr 0 e
     end
 
-datatype v = Real_v of real | Fun_v of v -> v | Tuple_v of v list
+datatype v = Real_v of real | Fun_v of v -> v | Tuple_v of v list | Array_v of v list
 
 fun real_v r = Real_v r
 
@@ -164,6 +171,7 @@ type 'a env = (string * 'a)list
 fun pr_v (Real_v r) = real_to_string r
   | pr_v (Fun_v _) = "fn"
   | pr_v (Tuple_v vs) = "(" ^ String.concatWith "," (map pr_v vs) ^ ")"
+  | pr_v (Array_v vs) = "[" ^ String.concatWith "," (map pr_v vs) ^ "]"
 
 fun lift1 s (opr : real -> real) : string * v =
     (s, Fun_v(fn (Real_v r) => Real_v(opr r)
@@ -212,13 +220,19 @@ fun eval (regof:'i -> Region.reg) (E:v env) (e:'i exp) : v =
                                                      handle _ =>
                                                             dieReg (regof info) ("index (1-based) out of bound"))
                                     | _ => dieReg (regof info) "expecting tuple")
+	      | Map (x,f,es,info) =>
+                  (case ev E es of
+                    Array_v vs => Array_v (List.map (fn v => ev (insert E (x, v)) f) vs)
+                  | _  => dieReg (regof info) "expecting array"
+                  )
+	      | Iota (n,_) => Array_v (List.tabulate (n, real_v o Real.fromInt))
     in ev E e
     end
 
 fun locOfTs nil = Region.botloc
   | locOfTs ((_,(l,_))::_) = l
 
-val kws = ["let", "in", "end", "fun"]
+val kws = ["let", "in", "end", "fun", "map", "iota"]
 
 val p_int : int p =
  fn ts =>
@@ -290,7 +304,12 @@ and p_ae : rexp p =
          || (((p_symb "#" ->> p_int) >>> p_ae) oor (fn ((i,e),r) => Prj(i,e,r)))
          || ((p_seq "(" ")" p_e) oor (fn ([e],_) => e | (es,r) => Tuple (es,r)))
          || (((p_kw "let" ->> p_var) >>> ((p_symb "=" ->> p_e) >>> (p_kw "in" ->> p_e)) >>- p_kw "end") oor (fn ((v,(e1,e2)),r) => Let(v,e1,e2,r)))
-       ) ts
+         || (((p_kw "map" ->> ((p_symb "("
+                              ->> (((p_symb "!" ->> p_var) >>- p_symb ".") >>> p_e))
+                              >>- p_symb ")")) >>> p_ae)
+                              oor (fn (((x, f), e), r) => Map (x, f, e, r)))
+         || ((p_kw "iota" ->> p_int) oor (fn (n, r) => Iota (n, r)))
+      ) ts
 
 and p_bin : string -> (rexp*rexp*Region.reg->rexp) -> rexp p -> (rexp -> rexp) p =
  fn opr => fn f => fn p =>
@@ -323,6 +342,11 @@ val rec p_prg : rprg p =
        (  ((((((p_kw "fun" ->> p_var) >>> p_var) >>- p_symb "=") >>> p_e) oor (fn (((f,x),e),r) => [(f,x,e,r)])) ??* p_prg) (op @)
        ) ts
 
+fun pr_prg (p: 'i prg) : string =
+  case p of
+     nil => ""
+   | ((f,x,e,_)::ps) => "fun " ^ f ^ " " ^ x ^ " = " ^ pr_exp e  ^ "\n" ^ pr_prg ps
+
 val parse_prg = parse0 p_prg
 
 fun eval_prg (regof:'i->Region.reg) (prg: 'i prg) (f:string) (v:v) : v =
@@ -350,6 +374,7 @@ datatype tinfo = Real_ti
                | Tuple_ti of ty list
                | Fun_ti of ty * ty
                | Tvar_ti of int * constraint list
+               | Array_ti of ty
      and constraint =
          NonFun
        | ElemTy of int * ty
@@ -371,9 +396,17 @@ fun tuple_ty (ts : ty list) : ty =
 fun fun_ty (t1:ty, t2:ty) : ty =
     URef.uref (Fun_ti (t1,t2))
 
+fun array_ty (ty:ty) : ty =
+    URef.uref (Array_ti ty)
+
 fun un_tuple (ty:ty) : ty list option =
     case URef.!! ty of
         Tuple_ti tys => SOME tys
+      | _ => NONE
+
+fun un_array (ty:ty) : ty option =
+    case URef.!! ty of
+        Array_ti ty => SOME ty
       | _ => NONE
 
 fun un_fun (ty:ty) : (ty*ty) option =
@@ -404,6 +437,7 @@ fun eq_ty (t1,t2) : bool =
       | (Tuple_ti ts1, Tuple_ti ts2) => eq_tys (ts1,ts2)
       | (Fun_ti (t1,t2),Fun_ti(t1',t2')) =>
         eq_ty(t1,t1') andalso eq_ty(t2,t2')
+      | (Array_ti t1, Array_ti t2) => eq_ty (t1, t2)
       | _ => false
 and eq_tys (nil,nil) = true
   | eq_tys (t1::ts1,t2::ts2) = eq_ty(t1,t2) andalso eq_tys(ts1,ts2)
@@ -416,6 +450,7 @@ and pr_ti ti =
       | Tuple_ti ts => "(" ^ String.concatWith " * " (map pr_ty ts) ^ ")"
       | Fun_ti(t1,t2) =>  "(" ^ pr_ty t1 ^ " -> " ^ pr_ty t2 ^ ")"
       | Tvar_ti (i,_) =>  "'a" ^ Int.toString i
+      | Array_ti t => pr_ty t ^ " list"
 
 fun unify_ty (r:Region.reg) (t1,t2) : unit =
     URef.unify (fn (Real_ti,Real_ti) => Real_ti
@@ -423,6 +458,7 @@ fun unify_ty (r:Region.reg) (t1,t2) : unit =
                    ( unify_tys r (ts1,ts2) ; ti )
                  | (ti as Fun_ti(t1,t2), Fun_ti(t1',t2')) =>
                    ( unify_ty r (t1,t1') ; unify_ty r (t2,t2') ; ti )
+		 | (ti as Array_ti t1, Array_ti t2) => (unify_ty r (t1, t2); ti)
                  | (Tvar_ti (i1,cs1), Tvar_ti (i2,cs2)) => Tvar_ti (Int.min(i1,i2), cs1 @ cs2)
                  | (Tvar_ti (_,cs), ti) => ( List.app (chk_constraint r ti) cs ; ti )
                  | (ti, Tvar_ti (_,cs)) => ( List.app (chk_constraint r ti) cs ; ti )
@@ -477,6 +513,8 @@ fun info_of_exp (e: 'i exp) : 'i =
       | App(_,_,i) => i
       | Tuple (_,i) => i
       | Prj(_,_,i) => i
+      | Map(_,_,_,i) => i
+      | Iota(_,i)  => i
 
 fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
     let fun tyinf_rbin opr (e1,e2,r) =
@@ -519,6 +557,15 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
                val t = fresh_ty()
            in unify_prj_ty r (i,t,ty1)
             ; (Prj(i,e1',(r,t)),t)
+           end
+         | Iota(n,r) =>
+               (Iota(n, (r, array_ty real_ty)), array_ty real_ty)
+         | Map (x,f,es, r) =>
+           let val ty_x = fresh_ty()
+               val (f', ty_f) = tyinf_exp (insert TEinit (x, ty_x)) f
+               val (es', ty_es) = tyinf_exp TE es
+           in unify_ty r (ty_es, array_ty ty_x)
+            ; (Map (x, f', es', (r, array_ty ty_f)), array_ty ty_f)
            end
     end
 
