@@ -122,6 +122,10 @@ fun compile (prg, exp_opt) =
             | Ast.App("sin",e,_) => E.DSL.sin(ce e)
             | Ast.App("cos",e,_) => E.DSL.cos(ce e)
             | Ast.App("exp",e,_) => E.DSL.exp(ce e)
+            | Ast.App("cprod3",e,_) => E.DSL.cprod3(ce e)
+            | Ast.App("dprod",e,_) => E.DSL.dprod(ce e)
+            | Ast.App("sprod",e,_) => E.DSL.sprod(ce e)
+            | Ast.App("norm2sq",e,_) => E.DSL.norm2sq(ce e)
             | Ast.Tuple(es,_) => E.DSL.tup (List.map ce es)
             | Ast.Prj(i,e,(r,_)) =>
               let val t = #2(Ast.info_of_exp e)
@@ -171,12 +175,15 @@ fun differentiate prg =
                              V.T(mapi (fn (ty,i) => V.Var ("x" ^ Int.toString(i+1))) tys)
                            | NONE =>
                              (if Ast.is_real ty then V.Var "x"
-                              else dieReg r "expecting tuple type or type real as argument type"))
+                              else case Ast.un_array ty of
+                                       SOME _ => V.Var "xs"
+                                     | NONE => dieReg r "expecting tuple type, array type, pr type real as argument type"))
                       | NONE => dieReg r "expecing function type"
                 val M = D.diffM E e arg
                 val E' = (f,e)::E
             in (f,arg,M,(r,t)) :: diff E' rest
             end
+        val () = debug "Differentiating program"
         val prg' = diff nil prg
         fun ppM pp M = V.ppM "    " pp M
         infix >>= val op >>= = V.>>=
@@ -212,14 +219,18 @@ fun unlinearise prg =
                                              V.Var("dy" ^ Int.toString (i+1))) tys)
                              | NONE =>
                                if Ast.is_real ty' then V.Var "dy"
-                               else dieReg r "expecting tuple type or real type as result type")
+                               else case Ast.un_array ty' of
+                                        SOME _ => V.Var "dys"
+                                      | NONE => dieReg r "expecting tuple type, array type, or real type as result type")
                         else (case Ast.un_tuple ty of
                                   SOME tys =>
                                   V.T (mapi (fn (ty,i) =>
                                                 V.Var("dx" ^ Int.toString (i+1))) tys)
                                 | NONE =>
                                   if Ast.is_real ty then V.Var "dx"
-                                  else dieReg r "expecting tuple type or real type as argument type")
+                                  else case Ast.un_array ty of
+                                           SOME _ => V.Var "dxs"
+                                         | NONE => dieReg r "expecting tuple type, array type, or real type as argument type")
                       | NONE => dieReg r "expecing function type"
                 infix >>= val op >>= = V.>>=
                 val ret = V.ret

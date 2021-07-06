@@ -1,0 +1,2 @@
+
+fun f xs = dprod (xs,xs) + 2

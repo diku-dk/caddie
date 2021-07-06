@@ -49,6 +49,7 @@ signature AST = sig
   val pr_ty     : ty -> string
 
   val un_tuple  : ty -> ty list option
+  val un_array  : ty -> ty option
   val un_fun    : ty -> (ty*ty)option
   val is_real   : ty -> bool
 
@@ -425,6 +426,11 @@ fun is_real (ty:ty) : bool =
         Real_ti => true
       | _ => false
 
+fun pair_ty(t1,t2) = tuple_ty[t1,t2]
+val real3_ty = tuple_ty[real_ty,real_ty,real_ty]
+
+val real_arr_ty = array_ty real_ty
+
 val TEinit : ty env =
     [("abs", fun_ty(real_ty,real_ty)),
      ("sin", fun_ty(real_ty,real_ty)),
@@ -432,6 +438,10 @@ val TEinit : ty env =
      ("tan", fun_ty(real_ty,real_ty)),
      ("exp", fun_ty(real_ty,real_ty)),
      ("ln", fun_ty(real_ty,real_ty)),
+     ("cprod3", fun_ty(pair_ty(real3_ty,real3_ty),real3_ty)),
+     ("dprod", fun_ty(pair_ty(real_arr_ty,real_arr_ty),real_ty)),
+     ("sprod", fun_ty(pair_ty(real_ty,real_arr_ty),real_arr_ty)),
+     ("norm2sq", fun_ty(pair_ty(real_ty,real_ty),real_ty)),
      ("pi", real_ty)]
 
 val TEempty : ty env = nil
@@ -456,7 +466,7 @@ and pr_ti ti =
       | Tuple_ti ts => "(" ^ String.concatWith " * " (map pr_ty ts) ^ ")"
       | Fun_ti(t1,t2) =>  "(" ^ pr_ty t1 ^ " -> " ^ pr_ty t2 ^ ")"
       | Tvar_ti (i,_) =>  "'a" ^ Int.toString i
-      | Array_ti t => pr_ty t ^ " list"
+      | Array_ti t => "[]" ^ pr_ty t
 
 fun unify_ty (r:Region.reg) (t1,t2) : unit =
     URef.unify (fn (Real_ti,Real_ti) => Real_ti
