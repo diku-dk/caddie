@@ -50,6 +50,7 @@ signature AST = sig
   val un_tuple  : ty -> ty list option
   val un_fun    : ty -> (ty*ty)option
   val is_real   : ty -> bool
+  val is_array  : ty -> bool
 
   val TEinit    : ty env
   val TEempty   : ty env
@@ -417,6 +418,11 @@ fun un_fun (ty:ty) : (ty*ty) option =
 fun is_real (ty:ty) : bool =
     case URef.!! ty of
         Real_ti => true
+      | _ => false
+
+fun is_array (ty:ty) : bool =
+    case URef.!! ty of
+        Array_ti _ => true
       | _ => false
 
 val TEinit : ty env =

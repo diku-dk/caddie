@@ -12,6 +12,7 @@ signature FUN = sig
        | Bilin of Prim.bilin (* X*Y->Z *)
        | If of f * f * f
        | NamedFun of string
+       | Map of f
 
   val pp  : f -> string
   val opt : f -> f

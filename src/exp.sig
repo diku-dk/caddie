@@ -26,5 +26,6 @@ signature EXP = sig
     val iff : e * e * e -> e
     val lett : string * e * e -> e
     val apply : string * e -> e
+    val map : var * e * e -> e
   end
 end

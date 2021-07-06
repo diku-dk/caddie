@@ -53,8 +53,14 @@ fun diff (E:env) (f:F.f) (x:v) : v * L.lin =
                 (case look E n of
                      SOME f => D f x
                    | NONE => die ("diff: unknown function " ^ n))
+	      | F.Map f  =>
+                 let val fvs = V.map (#1 o D f) x
+                     val linp =  V.mk_f (#2 o D f)
+                 in (fvs, L.lmapP (V.ret linp, x))
+                 end
     in D f x
     end
+and eval (E:env) (f:F.f) = #1 o diff E f
 
 type 'a M = 'a V.M
 val op >>= = V.>>= infix >>=
@@ -100,6 +106,11 @@ fun diffM (E:env) (f:F.f) (x:v) : (v * L.lin) M =
                 (case look E n of
                      SOME f => D f x
                    | NONE => die ("diffM: unknown function " ^ n))
+              | F.Map f  => 
+                 let val fvs = V.mapM (fn x' => V.fmap #1 (D f x')) x
+                     val linpM =  V.mk_fM (fn v => V.fmap #2 (D f v))
+                 in ret (fvs, L.lmapP (linpM, x))
+                 end
         and Ds fs xs =
             case (fs,xs) of
                 (nil,nil) => ret (nil,nil)
@@ -109,7 +120,6 @@ fun diffM (E:env) (f:F.f) (x:v) : (v * L.lin) M =
               | _ => die "diffM.Ds.unmatching number of functions and arguments"
     in D f x
     end
-
 
 (*
 fun diffr (f:F.f) (x:v) : v * L.lin =

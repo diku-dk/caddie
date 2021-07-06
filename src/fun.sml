@@ -15,6 +15,7 @@ datatype f =
        | Bilin of Prim.bilin
        | If of f * f * f
        | NamedFun of string
+       | Map of f
 
 fun pp e =
     case e of
@@ -30,6 +31,7 @@ fun pp e =
       | Bilin opr => "(" ^ Prim.pp_bilin opr ^ ")"
       | If(f,g,h) => "(if " ^ pp f ^ " then " ^ pp g ^ " else " ^ pp h ^ ")"
       | NamedFun f => f
+      | Map f => "(map " ^ pp f ^ " )"
 
 local val t = ref 0
 in fun tick_reset() = t := 0

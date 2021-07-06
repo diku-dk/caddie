@@ -1,6 +1,6 @@
 signature VAL = sig
-
   type v
+
   val R           : real -> v
   val T           : v list -> v
   val VarOpt      : (string -> v) option
@@ -27,4 +27,20 @@ signature VAL = sig
   val ppM         : string -> ('a -> string) -> 'a M -> string
   val getVal      : 'a M -> 'a
   val eq          : v * v -> bool
+  val fmap        : ('a -> 'b) -> 'a M -> 'b M
+  val sequence    : ('a M) list -> ('a list) M
+
+  val iota        : int -> v
+  val nth         : v -> int -> v
+
+  type 'a f
+  val pp_f        : ('a -> string) -> 'a f -> string
+  val mk_fM       : (v -> 'a M) -> ('a f) M
+  val mk_f        : (v -> 'a) -> 'a f
+  val fmap_f      : ('a -> 'b) -> 'a f -> 'b f
+  val mapM        : (v -> v M) -> v -> v
+  val map         : (v -> v) -> v -> v
+  val mapP        : 'a f M -> ('a -> v M) -> v -> v
+  val zipM        : (v -> v M) list -> v -> v M
+  val zip         : (v -> v) list -> v -> v
 end

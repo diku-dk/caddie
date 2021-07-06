@@ -4,10 +4,14 @@ structure TermVal = struct
 
 type var = string
 
+
 datatype v = R of real | T of v list | Uprim of Prim.uprim * v
            | Add of v * v | Var of var | Bilin of Prim.bilin * v * v
-           | If of v * v M * v M | Z
+           | If of v * v M * v M | Z | Map of var * v M * v | Zip of var * v list * v
+           | Nth of v * int
 withtype 'a M = 'a * (string * v)list
+
+
 
 val VarOpt = SOME Var
 
@@ -36,6 +40,9 @@ fun pp v =
       | Var v => v
       | If(v,m1,m2) => "(if " ^ pp v ^ " then\n" ^ ppM0 "  " pp pp m1 ^ "\nelse\n" ^ ppM0 "  " pp pp m2 ^ ")"
       | Z => "Z"
+      | Map(x,f,vs) => "(map (fn " ^ x ^ " => " ^ ppM0 "" pp pp f ^ ") " ^ pp vs ^ ")"
+      | Zip (x,fs,vs) => "(zip [" ^ String.concatWith "," (map (fn f => "fn " ^ x ^ " => " ^ pp f) fs) ^ "])" 
+      | Nth(v,n) => pp v ^ "[" ^ Int.toString n ^ "]"
 
 fun ppM (ind:string) (pp0:'a -> string) (m: 'a M) : string =
     ppM0 ind pp pp0 m
@@ -151,6 +158,10 @@ fun simpl0 v =
       | Bilin(Prim.Mul,v1,v2) => Bilin(Prim.Mul,simpl0 v1,simpl0 v2)
       | Bilin(p,v1,v2) => Bilin(p,simpl0 v1,simpl0 v2)
       | If(v,m1,m2) => If(simpl0 v,simplM m1,simplM m2)
+      | Map(x, f, vs)  => Map (x, simplM f, simpl0 vs)
+      | Zip(x,fs,vs)  => Zip(x, map simpl0 fs, simpl0 vs) 
+      | Nth(v,n)  => Nth(simpl0 v, n)
+
 and simplM (v,bs) = (simpl0 v,map (fn (x,v) => (x,simpl0 v)) bs)
 
 fun simpl1 e =
@@ -186,6 +197,9 @@ fun subst S e =
       | If(v,m1,m2) => If (subst S v,
                            substM S m1,
                            substM S m2)
+      | Map (x, f, v)  => Map (x, substM S f, subst S v)
+      | Zip (x, fs, vs)  => Zip (x, fs, subst S vs)
+      | Nth (v, n)  =>  Nth (subst S v, n)
 
 and substM S (v,bs) =
     (subst S v,map (fn (x,e) => (x,subst S e)) bs)
@@ -216,6 +230,7 @@ fun bilin (p,v:v) : v =
         SOME [v1,v2] => bilin0 p (v1,v2)
       | _ => die ("type error bilin (" ^ Prim.pp_bilin p ^ ") - expecting pair - got " ^ pp v)
 
+
 fun uprim_diff (p: Prim.uprim) (x:v) : v =
     case p of
         Prim.Sin => uprim Prim.Cos x
@@ -235,6 +250,9 @@ fun isComplex v =
       | Add _ => true
       | Bilin _ => true
       | If _ => true
+      | Map _ =>  true
+      | Zip _  =>  true
+      | Nth (v,_) =>  isComplex v
 
 val newVar =
     let val c = ref 0
@@ -258,4 +276,51 @@ fun letBind (v:v) : v M =
 
 val getVal = fn (x,_) => x
 
+val fmap : ('a -> 'b) -> 'a M -> 'b M = fn f => fn m =>  m >>= (fn x => ret (f x))
+
+fun sequence (mas : ('a M) list) =
+    case mas of
+	 nil => ret nil
+       | (ma :: mas') =>
+	   ma >>= (fn a =>
+           sequence mas' >>= (fn as' =>
+           ret (a :: as')))
+
+fun iota n = T (List.tabulate(n, R o Real.fromInt))
+
+fun nth v n = Nth(v,n)
+
+type 'a f = var * 'a
+
+fun pp_f pp_a (var, a) = "pm " ^ var ^ " => " ^ pp_a a
+
+fun mk_fM f = 
+ let val x = newVar()
+ in f (Var x) >>= (fn fx => ret (x, fx))
+ end 
+
+fun mk_f f = getVal (mk_fM (ret o f))
+
+fun fmap_f g (x, f) = (x, g f)
+
+fun mapM (f:v -> v M) (vs:v) : v =
+    let val x = newVar()
+    in Map(x, f (Var x), vs)
+    end
+
+fun map (f:v -> v) = mapM (ret o f)
+
+fun mapP (xam : 'a f M) (eval:'a -> v M) (vs:v) : v =
+    let val f' = xam >>= (fn (x, a) => eval a)
+        val x = #1 (getVal xam)
+    in Map(x, f', vs)
+    end
+
+fun zipM (fs:(v -> v M) list) (vs:v) : v M =
+    let val x = newVar()
+    in sequence (List.map (fn f => f (Var x)) fs) >>= (fn fs' => ret(Zip(x,fs',vs)))
+    end
+
+fun zip (fs : (v -> v) list) = 
+    getVal o zipM ((List.map (fn f => ret o f)) fs)
 end
