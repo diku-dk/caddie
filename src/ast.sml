@@ -12,6 +12,7 @@ signature AST = sig
                   | Prj of int * 'i exp * 'i
                   | Map of string * 'i exp * 'i exp * 'i
                   | Iota of int * 'i
+                  | Pow of real * 'i exp * 'i
 
   val pr_exp      : 'i exp -> string
   val info_of_exp : 'i exp -> 'i
@@ -138,6 +139,7 @@ datatype 'i exp = Real of real * 'i
                 | Prj of int * 'i exp * 'i
                 | Map of string * 'i exp * 'i exp * 'i
                 | Iota of int * 'i
+                | Pow of real * 'i exp * 'i
 
 fun par p x s =
     if x > p then s else "(" ^ s ^ ")"
@@ -159,6 +161,7 @@ fun pr_exp (e: 'i exp) : string =
               | Prj (i,e,_) => "#" ^ Int.toString i ^ " " ^ par p 8 (pr 8 e)
 	      | Map (x,f,es,_) => "map (fn " ^ x ^ " => " ^ pr_exp f ^ ") " ^ pr_exp es
 	      | Iota (n,_)  => "iota " ^ Int.toString n
+              | Pow (r,e,_) => "pow " ^ real_to_string r ^ " " ^ par p 8 (pr 8 e)
     in pr 0 e
     end
 
@@ -202,30 +205,32 @@ fun eval (regof:'i -> Region.reg) (E:v env) (e:'i exp) : v =
     let fun ev E e =
             case e of
                 Real (r,_) => Real_v r
-              | Let(x,e1,e2,_) => ev ((x,ev E e1)::E) e2
+              | Let (x,e1,e2,_) => ev ((x,ev E e1)::E) e2
               | Var (x,i) =>
                 (case look E x of
                      SOME v => v
                    | NONE => dieReg (regof i) ("unknown variable: " ^ x))
-              | Add(e1,e2,_) => liftBin op+ (ev E e1) (ev E e2)
-              | Sub(e1,e2,_) => liftBin op- (ev E e1) (ev E e2)
-              | Mul(e1,e2,_) => liftBin op* (ev E e1) (ev E e2)
+              | Add (e1,e2,_) => liftBin op+ (ev E e1) (ev E e2)
+              | Sub (e1,e2,_) => liftBin op- (ev E e1) (ev E e2)
+              | Mul (e1,e2,_) => liftBin op* (ev E e1) (ev E e2)
               | App (f,e,i) => (case look E f of
                                     SOME(Fun_v f) => f (ev E e)
                                   | SOME _ => dieReg (regof i) ("expecting function but found " ^ f)
                                   | NONE => dieReg (regof i) ("unknown function: " ^ f))
               | Tuple (es,_) => Tuple_v (map (ev E) es)
-              | Prj(i,e,info) => (case ev E e of
-                                      Tuple_v vs => (List.nth (vs,i-1)
-                                                     handle _ =>
-                                                            dieReg (regof info) ("index (1-based) out of bound"))
-                                    | _ => dieReg (regof info) "expecting tuple")
+              | Prj (i,e,info) => (case ev E e of
+                                       Tuple_v vs => (List.nth (vs,i-1)
+                                                      handle _ =>
+                                                             dieReg (regof info) ("index (1-based) out of bound"))
+                                     | _ => dieReg (regof info) "expecting tuple")
 	      | Map (x,f,es,info) =>
-                  (case ev E es of
-                    Array_v vs => Array_v (List.map (fn v => ev (insert E (x, v)) f) vs)
-                  | _  => dieReg (regof info) "expecting array"
-                  )
+                (case ev E es of
+                     Array_v vs => Array_v (List.map (fn v => ev (insert E (x, v)) f) vs)
+                   | _  => dieReg (regof info) "expecting array"
+                )
 	      | Iota (n,_) => Array_v (List.tabulate (n, real_v o Real.fromInt))
+              | Pow (r,e,i) => liftBin (fn (r1,r2) => Math.pow(r2,r1))
+                                       (Real_v r) (ev E e)
     in ev E e
     end
 
@@ -301,6 +306,7 @@ and p_ae : rexp p =
        (    ((p_var >>> p_ae) oor (fn ((v,e),r) => App(v,e,r)))
          || (p_var oor Var)
          || (p_real oor Real)
+         || (((p_symb "pow" ->> p_real) >>> p_ae) oor (fn ((f,e),r) => Pow(f,e,r)))
          || (((p_symb "#" ->> p_int) >>> p_ae) oor (fn ((i,e),r) => Prj(i,e,r)))
          || ((p_seq "(" ")" p_e) oor (fn ([e],_) => e | (es,r) => Tuple (es,r)))
          || (((p_kw "let" ->> p_var) >>> ((p_symb "=" ->> p_e) >>> (p_kw "in" ->> p_e)) >>- p_kw "end") oor (fn ((v,(e1,e2)),r) => Let(v,e1,e2,r)))
@@ -515,6 +521,7 @@ fun info_of_exp (e: 'i exp) : 'i =
       | Prj(_,_,i) => i
       | Map(_,_,_,i) => i
       | Iota(_,i)  => i
+      | Pow(_,_,i) => i
 
 fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
     let fun tyinf_rbin opr (e1,e2,r) =
@@ -552,20 +559,25 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
                val t = tuple_ty (map #2 ets)
            in (Tuple (map #1 ets,(r,t)), t)
            end
-         | Prj(i,e1,r) =>
+         | Prj (i,e1,r) =>
            let val (e1',ty1) = tyinf_exp TE e1
                val t = fresh_ty()
            in unify_prj_ty r (i,t,ty1)
             ; (Prj(i,e1',(r,t)),t)
            end
-         | Iota(n,r) =>
+         | Iota (n,r) =>
                (Iota(n, (r, array_ty real_ty)), array_ty real_ty)
-         | Map (x,f,es, r) =>
+         | Map (x,f,es,r) =>
            let val ty_x = fresh_ty()
                val (f', ty_f) = tyinf_exp (insert TEinit (x, ty_x)) f
                val (es', ty_es) = tyinf_exp TE es
            in unify_ty r (ty_es, array_ty ty_x)
             ; (Map (x, f', es', (r, array_ty ty_f)), array_ty ty_f)
+           end
+         | Pow (f,e1,r) =>
+           let val (e1',ty1) = tyinf_exp TE e1
+           in unify_ty r (ty1,real_ty)
+            ; (Pow (f,e1',(r,real_ty)), real_ty)
            end
     end
 

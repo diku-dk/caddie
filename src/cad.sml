@@ -130,6 +130,7 @@ fun compile (prg, exp_opt) =
                    | NONE => dieReg r "compile: unresolved tuple"
               end
             | Ast.App(f,e,_) => E.DSL.apply(f,ce e)
+            | Ast.Pow(f,e,_) => E.DSL.pow f (ce e)
       fun cf (f,x,e:(Region.reg*Ast.ty) Ast.exp,i) : string*string*E.e*(Region.reg*Ast.ty) =
           (f,x,ce e,i)
       val () = debug("Compiling program")
