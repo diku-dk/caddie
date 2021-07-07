@@ -210,6 +210,24 @@ fun lift_rxrN_rN s (opr : real * real list -> real list) : string * v =
                  end
                | _ => raise Fail ("eval: " ^ s ^ " expects a pair of real and a real array as argument")))
 
+fun lift_r3xr3_r3 s (opr : (real*real*real) * (real*real*real) -> (real*real*real)) : string * v =
+    (s, Fun_v(fn (Tuple_v[Tuple_v[Real_v a1,Real_v a2, Real_v a3],
+                          Tuple_v[Real_v b1,Real_v b2, Real_v b3]]) =>
+                 let val (r1,r2,r3) = opr ((a1,a2,a3),(b1,b2,b3))
+                 in Tuple_v[Real_v r1,Real_v r2,Real_v r3]
+                 end
+               | _ => raise Fail ("eval: " ^ s ^ " expects a pair of two triples of reals")))
+
+fun lift_rNxrN_rN s (opr : real list * real list -> real list) : string * v =
+    (s, Fun_v(fn (Tuple_v[Array_v vs1,
+                          Array_v vs2]) =>
+                 let val rs1 = map (toReal s) vs1
+                     val rs2 = map (toReal s) vs2
+                     val rs = opr (rs1,rs2)
+                 in Array_v (map Real_v rs)
+                 end
+               | _ => raise Fail ("eval: " ^ s ^ " expects a pair of two real arrays")))
+
 val VEinit : v env =
     [lift1r "abs" (fn r => if r < 0.0 then ~r else r),
      lift1r "sin" Math.sin,
@@ -219,6 +237,11 @@ val VEinit : v env =
      lift1r "ln" Math.ln,
      lift_rNxrN_r "dprod" (ListPair.foldlEq(fn (r1,r2,a) => a + (r1*r2)) 0.0),
      lift_rxrN_rN "sprod" (fn (r,rs) => List.map (fn q => q*r) rs),
+     lift_r3xr3_r3 "cprod3" (fn ((a1,a2,a3),(b1,b2,b3)) =>
+                                (a2*b3-a3*b2, a3*b1-a1*b3, a1*b2-a2*b1)),
+     lift_rNxrN_rN "cross" (fn ([a1,a2,a3],[b1,b2,b3]) =>
+                               [a2*b3-a3*b2, a3*b1-a1*b3, a1*b2-a2*b1]
+                             | _ => raise Fail ("eval: cross is defined only in the three dimensional space")),
      ("pi", Real_v (Math.pi))]
 
 val VEempty : v env = nil
@@ -474,6 +497,7 @@ val TEinit : ty env =
      ("exp", fun_ty(real_ty,real_ty)),
      ("ln", fun_ty(real_ty,real_ty)),
      ("cprod3", fun_ty(pair_ty(real3_ty,real3_ty),real3_ty)),
+     ("cross", fun_ty(pair_ty(real_arr_ty,real_arr_ty),real_arr_ty)),  (* cprod3 on arrays *)
      ("dprod", fun_ty(pair_ty(real_arr_ty,real_arr_ty),real_ty)),
      ("sprod", fun_ty(pair_ty(real_ty,real_arr_ty),real_arr_ty)),
      ("norm2sq", fun_ty(pair_ty(real_ty,real_ty),real_ty)),
@@ -576,6 +600,14 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
              ; unify_ty (info_of_exp e2) (ty2,real_ty)
              ; (opr (e1',e2',(r,real_ty)), real_ty)
             end
+        fun tyinf_bin opr (e1,e2,r) =
+            let val (e1',ty1) = tyinf_exp TE e1
+                val (e2',ty2) = tyinf_exp TE e2
+                val t = fresh_ty()
+            in unify_ty (info_of_exp e1) (ty1,t)
+             ; unify_ty (info_of_exp e2) (ty2,t)
+             ; (opr (e1',e2',(r,t)), t)
+            end
     in case e of
            Real (f,r) => (Real (f,(r,real_ty)), real_ty)
          | Let (x,e1,e2,r) =>
@@ -583,7 +615,7 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
                val (e2',ty2) = tyinf_exp (insert TE (x,ty1)) e2
            in (Let (x,e1',e2',(r,ty2)), ty2)
            end
-         | Add (e1,e2,r) => tyinf_rbin Add (e1,e2,r)
+         | Add (e1,e2,r) => tyinf_bin Add (e1,e2,r)  (* Add is generic : 'a * 'a -> 'a  ('a <> fun type) *)
          | Sub (e1,e2,r) => tyinf_rbin Sub (e1,e2,r)
          | Mul (e1,e2,r) => tyinf_rbin Mul (e1,e2,r)
          | Var (x,r) => (case look TE x of

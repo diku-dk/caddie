@@ -123,6 +123,7 @@ fun compile (prg, exp_opt) =
             | Ast.App("cos",e,_) => E.DSL.cos(ce e)
             | Ast.App("exp",e,_) => E.DSL.exp(ce e)
             | Ast.App("cprod3",e,_) => E.DSL.cprod3(ce e)
+            | Ast.App("cross",e,_) => E.DSL.cprod3(ce e)
             | Ast.App("dprod",e,_) => E.DSL.dprod(ce e)
             | Ast.App("sprod",e,_) => E.DSL.sprod(ce e)
             | Ast.App("norm2sq",e,_) => E.DSL.norm2sq(ce e)
