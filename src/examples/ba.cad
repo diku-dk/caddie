@@ -1,3 +1,3 @@
-fun norm xs = pow 1 (dprod (xs,xs))
+fun norm xs = pow 12.0 (dprod (xs,xs))
 
 fun f xs = dprod (xs,xs) + 2

@@ -103,10 +103,12 @@ fun real_to_string r =
     CharVector.map (fn #"~" => #"-" | c => c) (Real.toString r)
 
 fun is_num s =
-    Option.isSome(string_to_real s)
+    Option.isSome(string_to_real s) orelse
+    (size s > 0 andalso String.sub(s,size s - 1) = #"." andalso
+     Option.isSome(string_to_int(String.substring(s,0,size s -1))))
 
 fun tokens {srcname,input} =
-    T.tokenise {sep_chars="(){}[],.;",
+    T.tokenise {sep_chars="(){}[],;",
                 symb_chars="#&|+-~^?*:!%/='<>@",
                 is_id=is_id,
                 is_num=is_num}
@@ -177,17 +179,35 @@ fun pr_v (Real_v r) = real_to_string r
   | pr_v (Tuple_v vs) = "(" ^ String.concatWith "," (map pr_v vs) ^ ")"
   | pr_v (Array_v vs) = "[" ^ String.concatWith "," (map pr_v vs) ^ "]"
 
-fun lift1 s (opr : real -> real) : string * v =
+fun lift1r s (opr : real -> real) : string * v =
     (s, Fun_v(fn (Real_v r) => Real_v(opr r)
                | _ => raise Fail ("eval: " ^ s ^ " expects a real argument")))
 
+fun lift2r s (opr : real*real -> real) : string * v =
+    (s, Fun_v(fn (Tuple_v[Real_v r1,Real_v r2]) => Real_v(opr (r1,r2))
+               | _ => raise Fail ("eval: " ^ s ^ " expects a pair of reals as argument")))
+
+fun toReal s (v:v) : real =
+    case v of
+        Real_v r => r
+      | _ => raise Fail ("eval: " ^ s ^ " expecting real")
+
+fun lift_rNxrN_r s (opr : real list * real list -> real) : string * v =
+    (s, Fun_v(fn (Tuple_v[Array_v vs1,Array_v vs2]) =>
+                 let val rs1 = map (toReal s) vs1
+                     val rs2 = map (toReal s) vs2
+                 in Real_v(opr (rs1,rs2))
+                 end
+               | _ => raise Fail ("eval: " ^ s ^ " expects a pair of real arrays as argument")))
+
 val VEinit : v env =
-    [lift1 "abs" (fn r => if r < 0.0 then ~r else r),
-     lift1 "sin" Math.sin,
-     lift1 "cos" Math.cos,
-     lift1 "tan" Math.tan,
-     lift1 "exp" Math.exp,
-     lift1 "ln" Math.ln,
+    [lift1r "abs" (fn r => if r < 0.0 then ~r else r),
+     lift1r "sin" Math.sin,
+     lift1r "cos" Math.cos,
+     lift1r "tan" Math.tan,
+     lift1r "exp" Math.exp,
+     lift1r "ln" Math.ln,
+     lift_rNxrN_r "dprod" (ListPair.foldlEq(fn (r1,r2,a) => a + (r1*r2)) 0.0),
      ("pi", Real_v (Math.pi))]
 
 val VEempty : v env = nil
