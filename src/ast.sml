@@ -24,6 +24,7 @@ signature AST = sig
   type 'a env
   val look    : 'a env -> string -> 'a option
   val insert  : 'a env -> string * 'a -> 'a env
+  val plus    : 'a env * 'a env -> 'a env
 
   val VEinit  : v env
   val VEempty : v env
@@ -226,6 +227,8 @@ fun look nil x = NONE
   | look ((k,v)::E) x = if k = x then SOME v else look E x
 
 fun insert (E: 'a env) (k:string,v:'a) : 'a env = (k,v)::E
+
+fun plus (E1, E2) = E2 @ E1
 
 fun liftBin opr v1 v2 : v =
     case (v1,v2) of

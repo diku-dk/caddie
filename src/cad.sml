@@ -72,7 +72,7 @@ fun parseEval () =
             case exp_opt of
                 NONE => NONE
               | SOME (s,e) =>
-                let val (e',ty) = Ast.tyinf_exp TE e
+                let val (e',ty) = Ast.tyinf_exp (Ast.plus(Ast.TEinit,TE)) e
                 in SOME(s,e',ty)
                 end
 
