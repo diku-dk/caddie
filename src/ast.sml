@@ -113,7 +113,7 @@ fun tokens {srcname,input} =
                {srcname=srcname,input=input}
 
 fun prTokens ts =
-    ( print "Tokens:\n"
+    ( print ("Tokens:\n")
     ; app (fn (t,r) => print (Region.pp r ^ ":" ^ T.pp_token t ^ ", ")) ts
     ; print "\n\n"
     )
@@ -238,7 +238,7 @@ fun eval (regof:'i -> Region.reg) (E:v env) (e:'i exp) : v =
 fun locOfTs nil = Region.botloc
   | locOfTs ((_,(l,_))::_) = l
 
-val kws = ["let", "in", "end", "fun", "map", "iota", "fn"]
+val kws = ["let", "in", "end", "fun", "map", "iota", "fn", "pow"]
 
 val p_int : int p =
  fn ts =>
@@ -305,9 +305,9 @@ and p_e0 : rexp p =
 and p_ae : rexp p =
     fn ts =>
        (    ((p_var >>> p_ae) oor (fn ((v,e),r) => App(v,e,r)))
+         || (((p_kw "pow" ->> p_real) >>> p_ae) oor (fn ((f,e),r) => Pow(f,e,r)))
          || (p_var oor Var)
          || (p_real oor Real)
-         || (((p_symb "pow" ->> p_real) >>> p_ae) oor (fn ((f,e),r) => Pow(f,e,r)))
          || (((p_symb "#" ->> p_int) >>> p_ae) oor (fn ((i,e),r) => Prj(i,e,r)))
          || ((p_seq "(" ")" p_e) oor (fn ([e],_) => e | (es,r) => Tuple (es,r)))
          || (((p_kw "let" ->> p_var) >>> ((p_symb "=" ->> p_e) >>> (p_kw "in" ->> p_e)) >>- p_kw "end") oor (fn ((v,(e1,e2)),r) => Let(v,e1,e2,r)))
@@ -327,11 +327,13 @@ and p_bin : string -> (rexp*rexp*Region.reg->rexp) -> rexp p -> (rexp -> rexp) p
 fun parse0 (p: 'a p) {srcname,input} : 'a =
     let val ts = lexing {srcname=srcname,input=input}
     in case p ts of
-           OK(e,r,ts') =>
-           (case ts' of
-                nil => e
-              | _ => ( prTokens ts' ; dieLoc (#2 r) "syntax error" ))
-         | NO(l,f) => dieLoc l (f())
+           NO(l,f) => dieLoc l (f())
+         | OK(e,r,ts') =>
+           case ts' of
+               nil => e
+             | _ => ( prTokens ts
+                    ; dieLoc (#2 r) "syntax error"
+                    )
     end
 
 fun parse arg = parse0 p_e arg
