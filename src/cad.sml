@@ -136,6 +136,8 @@ fun compile (prg, exp_opt) =
               end
             | Ast.App(f,e,_) => E.DSL.apply(f,ce e)
             | Ast.Pow(f,e,_) => E.DSL.pow f (ce e)
+	    | Ast.Map(x,f,es,_) => E.DSL.map (x, ce f, ce es)
+	    | Ast.Iota(n,_)  => E.DSL.const (V.iota n)
       fun cf (f,x,e:(Region.reg*Ast.ty) Ast.exp,i) : string*string*E.e*(Region.reg*Ast.ty) =
           (f,x,ce e,i)
       val () = debug("Compiling program")

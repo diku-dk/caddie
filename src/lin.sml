@@ -1,7 +1,8 @@
 fun die s = (print ("Error (Lin): " ^ s ^ "\n"); raise Fail s)
 
-functor Lin(V:VAL) :> LIN where type v = V.v and type 'a M = 'a V.M = struct
+functor Lin(V:VAL) :> LIN where type v = V.v and type 'a M = 'a V.M and type 'a f = 'a V.f = struct
 type v = V.v
+type 'a f = 'a V.f
 type 'a M = 'a V.M
 
 datatype lin = Lin of string * (v -> v)
@@ -15,6 +16,9 @@ datatype lin = Lin of string * (v -> v)
              | CurL of Prim.bilin * v
              | CurR of Prim.bilin * v
              | If of v * lin M * lin M
+	     | LMap of lin
+             | Zip of lin list
+             | LMapP of lin f M * v
 
 val lin = Lin
 fun prj d i = Prj (d,i)
@@ -24,6 +28,9 @@ val oplus = Oplus
 val comp = Comp
 val curL = CurL
 val curR = CurR
+val lmap = LMap
+val zip = Zip
+val lmapP = LMapP
 
 val add = Add
 val dup = Dup
@@ -45,6 +52,10 @@ fun pp e =
       | CurL(p,v) => "(" ^ V.pp v ^ " " ^ Prim.pp_bilin p ^ ")"
       | CurR(p,v) => "(" ^ Prim.pp_bilin p ^ " " ^ V.pp v ^ ")"
       | If(v,m1,m2) => "(if " ^ V.pp v ^ " then " ^ V.ppM "  " pp m1 ^ " else " ^ V.ppM "  " pp m2 ^ ")"
+
+      | LMap f => "(lmap (" ^ pp f ^ "))"
+      | Zip fs => "(zip (" ^ String.concatWith "," (map pp fs) ^ "))"
+      | LMapP (f, vs) => "(lmapP (" ^ V.ppM "   " (V.pp_f pp) f ^ "," ^ V.pp vs ^ "))"
 
 val ret = V.ret
 infix >>=
@@ -87,6 +98,11 @@ fun eval (e:lin) (x:v) : v V.M =
       | If(v,m1,m2) => ret(V.iff (v,
                                   m1 >>= (fn m1 => eval m1 x),
                                   m2 >>= (fn m2 => eval m2 x)))
+      | LMap f => ret(V.mapM (eval f) x)
+      | Zip fs  => V.zipM (map eval fs) x
+      | LMapP (f, vs)  =>
+         ret (V.mapP f (fn l => ret(V.mapM (eval l) x)) vs)
+
 and evals fs xs =
     case (fs,xs) of
         (nil,nil) => ret nil
@@ -122,5 +138,8 @@ fun adjoint (e:lin) : lin =
       | If(v,m1,m2) => If(v,
                           m1 >>= (ret o adjoint),
                           m2 >>= (ret o adjoint))
+      | LMap f => LMap (adjoint f)
+      | Zip fs  => Zip (map adjoint fs)
+      | LMapP (f, vs) => LMapP (V.fmap (V.fmap_f adjoint) f, vs)  (* fix *)
 
 end

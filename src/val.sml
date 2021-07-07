@@ -4,6 +4,7 @@ structure Val :> VAL = struct
 
 datatype v = R of real | T of v list | Z
 
+
 val VarOpt = NONE
 fun unT (T xs) = SOME xs
   | unT _ = NONE
@@ -98,6 +99,7 @@ fun bilin (p,v) = liftP (Prim.pp_bilin p) (case p of
                                              | Prim.Mul => mul
                                              | Prim.Norm2Sq => norm2sq) v
 
+
 fun isComplex _ = false
 
 type 'a M = 'a
@@ -110,6 +112,10 @@ fun iff (v,m1,m2) =
         R v => if v >= 0.0 then m1 else m2
       | _ => die "iff: expecting real"
 
+fun fmap f ma = f ma
+
+fun sequence mas = mas
+
 fun ppM (ind:string) (pp:'a -> string) (x: 'a M) : string = ind ^ pp x
 
 val getVal = fn x => x
@@ -119,4 +125,39 @@ fun eq (R r, R r') = Real.abs(r - r') < 0.0000000001
   | eq (T vs,T vs') = (List.all eq (ListPair.zip(vs,vs'))
                        handle _ => false)
   | eq _ = false
+
+fun iota n = T (List.tabulate(n, R o Real.fromInt))
+
+fun nth v n =
+   case unT v of
+      SOME vs => List.nth(vs, n)
+    | NONE    => die "nth: must have an array argument"
+
+type 'a f = v -> 'a
+
+fun pp_f _ _  = "<fun>"
+
+fun mk_fM f = f
+
+val mk_f = mk_fM
+
+fun fmap_f f fa = f o fa
+
+fun mapM (f:v -> v M) (vs:v) : v M =
+    case unT vs of
+	SOME vs' => T (List.map f vs')
+       | NONE  => die "mapM: map expects a list" 
+
+val map = mapM
+
+fun mapP (xam : v -> 'a) (eval: 'a -> v) (vs:v) : v =
+    map (eval o xam) vs
+
+fun zipM (fs:(v -> v M) list) (vs:v) : v M =
+    case unT vs of
+	SOME vs' => T (ListPair.mapEq (fn (f, v) => f v) (fs, vs'))
+       | NONE  => die "zipM: zip expects a list" 
+
+val zip = zipM
+
 end
