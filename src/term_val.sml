@@ -4,14 +4,19 @@ structure TermVal = struct
 
 type var = string
 
-
-datatype v = R of real | T of v list | Uprim of Prim.uprim * v
-           | Add of v * v | Var of var | Bilin of Prim.bilin * v * v
-           | If of v * v M * v M | Z | Map of var * v M * v | Zip of var * v list * v
+datatype v = R of real
+           | T of v list
+           | Uprim of Prim.uprim * v
+           | Add of v * v
+           | Var of var
+           | Bilin of Prim.bilin * v * v
+           | If of v * v M * v M
+           | Z
+           | Prj of int * v
+           | Map of var * v M * v
+           | Zip of var * v list * v
            | Nth of v * int
 withtype 'a M = 'a * (string * v)list
-
-
 
 val VarOpt = SOME Var
 
@@ -40,8 +45,9 @@ fun pp v =
       | Var v => v
       | If(v,m1,m2) => "(if " ^ pp v ^ " then\n" ^ ppM0 "  " pp pp m1 ^ "\nelse\n" ^ ppM0 "  " pp pp m2 ^ ")"
       | Z => "Z"
+      | Prj(i,v) => "prj" ^ Int.toString i ^ "(" ^ pp v ^ ")"
       | Map(x,f,vs) => "(map (fn " ^ x ^ " => " ^ ppM0 "" pp pp f ^ ") " ^ pp vs ^ ")"
-      | Zip (x,fs,vs) => "(zip [" ^ String.concatWith "," (map (fn f => "fn " ^ x ^ " => " ^ pp f) fs) ^ "])" 
+      | Zip (x,fs,vs) => "(zip [" ^ String.concatWith "," (map (fn f => "fn " ^ x ^ " => " ^ pp f) fs) ^ "])"
       | Nth(v,n) => pp v ^ "[" ^ Int.toString n ^ "]"
 
 fun ppM (ind:string) (pp0:'a -> string) (m: 'a M) : string =
@@ -51,8 +57,7 @@ fun iff (v,m1,m2) = If(v,m1,m2)
 
 fun prjI (s:string) (i:int) : v -> v =
     fn T xs => (List.nth(xs,i-1) handle _ => die (s ^ " index error"))
-     | v => die ("type error prjI(" ^ Int.toString i ^
-                 ") - expecting tuple (" ^ s ^ ") - got " ^ pp v)
+     | v => Prj(i,v)
 
 (* smart constructor for Add *)
 fun add (T[v1,v2]) =
@@ -145,6 +150,9 @@ fun simpl0 v =
       | T vs => T (map simpl0 vs)
       | R _ => v
       | Z => Z
+      | Prj(i,T vs) => (tick();
+                        simpl0 (List.nth(vs,i-1))
+                        handle _ => die "simpl0.Prj.projection out of bound")
       | Var _ => v
       | Bilin(Prim.Mul,R r1,R r2) => (tick(); R (r1*r2))
       | Bilin(Prim.Mul,R r,v) => if Real.==(r,0.0) then (tick(); R 0.0)
@@ -158,10 +166,10 @@ fun simpl0 v =
       | Bilin(Prim.Mul,v1,v2) => Bilin(Prim.Mul,simpl0 v1,simpl0 v2)
       | Bilin(p,v1,v2) => Bilin(p,simpl0 v1,simpl0 v2)
       | If(v,m1,m2) => If(simpl0 v,simplM m1,simplM m2)
+      | Prj(i,v) => Prj(i,simpl0 v)
       | Map(x, f, vs)  => Map (x, simplM f, simpl0 vs)
-      | Zip(x,fs,vs)  => Zip(x, map simpl0 fs, simpl0 vs) 
+      | Zip(x,fs,vs)  => Zip(x, map simpl0 fs, simpl0 vs)
       | Nth(v,n)  => Nth(simpl0 v, n)
-
 and simplM (v,bs) = (simpl0 v,map (fn (x,v) => (x,simpl0 v)) bs)
 
 fun simpl1 e =
@@ -191,6 +199,7 @@ fun subst S e =
       | Z => Z
       | R _ => e
       | T es => T(map (subst S) es)
+      | Prj(i,e) => Prj(i,subst S e)
       | Uprim(p,e) => Uprim(p,subst S e)
       | Add(e1,e2) => Add(subst S e1, subst S e2)
       | Bilin(p,e1,e2) => Bilin(p,subst S e1, subst S e2)
@@ -250,6 +259,7 @@ fun isComplex v =
       | Add _ => true
       | Bilin _ => true
       | If _ => true
+      | Prj _ => true
       | Map _ =>  true
       | Zip _  =>  true
       | Nth (v,_) =>  isComplex v
@@ -294,10 +304,10 @@ type 'a f = var * 'a
 
 fun pp_f pp_a (var, a) = "pm " ^ var ^ " => " ^ pp_a a
 
-fun mk_fM f = 
+fun mk_fM f =
  let val x = newVar()
  in f (Var x) >>= (fn fx => ret (x, fx))
- end 
+ end
 
 fun mk_f f = getVal (mk_fM (ret o f))
 
@@ -321,6 +331,6 @@ fun zipM (fs:(v -> v M) list) (vs:v) : v M =
     in sequence (List.map (fn f => f (Var x)) fs) >>= (fn fs' => ret(Zip(x,fs',vs)))
     end
 
-fun zip (fs : (v -> v) list) = 
+fun zip (fs : (v -> v) list) =
     getVal o zipM ((List.map (fn f => ret o f)) fs)
 end

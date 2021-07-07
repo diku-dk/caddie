@@ -143,6 +143,11 @@ structure DSL = struct
   val tup = Tuple
   val prj = Prj
   val apply = Apply
+  val op * : e * e -> e = fn (x,y) => Bilin(Prim.Mul,x,y)
+  val cprod3 = fn e => Bilin(Prim.Cprod3,prj(2,1,e),prj(2,2,e))
+  val dprod = fn e => Bilin(Prim.Dprod,prj(2,1,e),prj(2,2,e))
+  val sprod = fn e => Bilin(Prim.Sprod,prj(2,1,e),prj(2,2,e))
+  val norm2sq = fn e => Bilin(Prim.Norm2Sq,prj(2,1,e),prj(2,2,e))
   val map = Map
 end
 end

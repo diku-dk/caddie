@@ -1,0 +1,6 @@
+fun norm xs = pow 0.5 (dprod (xs,xs))
+
+fun nrm xs = sprod (pow -1 (norm xs) ,xs)
+
+
+fun f xs = dprod (xs,xs) + 2

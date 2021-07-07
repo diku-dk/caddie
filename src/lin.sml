@@ -54,7 +54,7 @@ fun pp e =
       | If(v,m1,m2) => "(if " ^ V.pp v ^ " then " ^ V.ppM "  " pp m1 ^ " else " ^ V.ppM "  " pp m2 ^ ")"
 
       | LMap f => "(lmap (" ^ pp f ^ "))"
-      | Zip fs => "(zip (" ^ String.concatWith "," (map pp fs) ^ "))" 
+      | Zip fs => "(zip (" ^ String.concatWith "," (map pp fs) ^ "))"
       | LMapP (f, vs) => "(lmapP (" ^ V.ppM "   " (V.pp_f pp) f ^ "," ^ V.pp vs ^ "))"
 
 val ret = V.ret
@@ -80,7 +80,10 @@ fun eval (e:lin) (x:v) : v V.M =
              SOME xs =>
              evals fs xs >>= (fn vs =>
              letBind (V.T vs))
-           | NONE => die "eval.oplus")
+           | NONE =>
+             letBind x >>= (fn v =>
+             evals fs (List.tabulate(length fs, fn i => V.prjI "Oplus" (i+1) v)) >>= (fn vs =>
+             letBind (V.T vs))))
       | Comp(g,f) => eval f x >>= eval g
       | CurL(p,v) => letBind (V.bilin (p,V.T[v,x])
                               handle X => (print ("CurL problem: " ^
@@ -135,8 +138,8 @@ fun adjoint (e:lin) : lin =
       | If(v,m1,m2) => If(v,
                           m1 >>= (ret o adjoint),
                           m2 >>= (ret o adjoint))
-      | LMap f => LMap (adjoint f) 
-      | Zip fs  => Zip (map adjoint fs) 
+      | LMap f => LMap (adjoint f)
+      | Zip fs  => Zip (map adjoint fs)
       | LMapP (f, vs) => LMapP (V.fmap (V.fmap_f adjoint) f, vs)  (* fix *)
 
 end

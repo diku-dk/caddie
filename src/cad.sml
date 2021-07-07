@@ -72,7 +72,7 @@ fun parseEval () =
             case exp_opt of
                 NONE => NONE
               | SOME (s,e) =>
-                let val (e',ty) = Ast.tyinf_exp TE e
+                let val (e',ty) = Ast.tyinf_exp (Ast.plus(Ast.TEinit,TE)) e
                 in SOME(s,e',ty)
                 end
 
@@ -122,6 +122,10 @@ fun compile (prg, exp_opt) =
             | Ast.App("sin",e,_) => E.DSL.sin(ce e)
             | Ast.App("cos",e,_) => E.DSL.cos(ce e)
             | Ast.App("exp",e,_) => E.DSL.exp(ce e)
+            | Ast.App("cprod3",e,_) => E.DSL.cprod3(ce e)
+            | Ast.App("dprod",e,_) => E.DSL.dprod(ce e)
+            | Ast.App("sprod",e,_) => E.DSL.sprod(ce e)
+            | Ast.App("norm2sq",e,_) => E.DSL.norm2sq(ce e)
             | Ast.Tuple(es,_) => E.DSL.tup (List.map ce es)
             | Ast.Prj(i,e,(r,_)) =>
               let val t = #2(Ast.info_of_exp e)
@@ -130,6 +134,7 @@ fun compile (prg, exp_opt) =
                    | NONE => dieReg r "compile: unresolved tuple"
               end
             | Ast.App(f,e,_) => E.DSL.apply(f,ce e)
+            | Ast.Pow(f,e,_) => E.DSL.pow f (ce e)
 	    | Ast.Map(x,f,es,_) => E.DSL.map (x, ce f, ce es)
 	    | Ast.Iota(n,_)  => E.DSL.const (V.iota n)
       fun cf (f,x,e:(Region.reg*Ast.ty) Ast.exp,i) : string*string*E.e*(Region.reg*Ast.ty) =
@@ -171,13 +176,16 @@ fun differentiate prg =
                              SOME tys =>
                              V.T(mapi (fn (ty,i) => V.Var ("x" ^ Int.toString(i+1))) tys)
                            | NONE =>
-                             (if (Ast.is_real ty orelse Ast.is_array ty) then V.Var "x"
-                              else dieReg r "expecting tuple type, array type, or type real as argument type"))
+                             (if Ast.is_real ty then V.Var "x"
+                              else case Ast.un_array ty of
+                                       SOME _ => V.Var "xs"
+                                     | NONE => dieReg r "expecting tuple type, array type, pr type real as argument type"))
                       | NONE => dieReg r "expecing function type"
                 val M = D.diffM E e arg
                 val E' = (f,e)::E
             in (f,arg,M,(r,t)) :: diff E' rest
             end
+        val () = debug "Differentiating program"
         val prg' = diff nil prg
         fun ppM pp M = V.ppM "    " pp M
         infix >>= val op >>= = V.>>=
@@ -212,15 +220,19 @@ fun unlinearise prg =
                                V.T (mapi (fn (ty,i) =>
                                              V.Var("dy" ^ Int.toString (i+1))) tys)
                              | NONE =>
-                               if (Ast.is_real ty' orelse Ast.is_array ty') then V.Var "dy"
-                               else dieReg r "expecting tuple type, array type, or real type as result type")
+                               if Ast.is_real ty' then V.Var "dy"
+                               else case Ast.un_array ty' of
+                                        SOME _ => V.Var "dys"
+                                      | NONE => dieReg r "expecting tuple type, array type, or real type as result type")
                         else (case Ast.un_tuple ty of
                                   SOME tys =>
                                   V.T (mapi (fn (ty,i) =>
                                                 V.Var("dx" ^ Int.toString (i+1))) tys)
                                 | NONE =>
-                                  if (Ast.is_real ty orelse Ast.is_array ty) then V.Var "dx"
-                                  else dieReg r "expecting tuple type, array type, or real type as argument type")
+                                  if Ast.is_real ty then V.Var "dx"
+                                  else case Ast.un_array ty of
+                                           SOME _ => V.Var "dxs"
+                                         | NONE => dieReg r "expecting tuple type, array type, or real type as argument type")
                       | NONE => dieReg r "expecing function type"
                 infix >>= val op >>= = V.>>=
                 val ret = V.ret
