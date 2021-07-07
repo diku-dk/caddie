@@ -200,6 +200,15 @@ fun lift_rNxrN_r s (opr : real list * real list -> real) : string * v =
                  end
                | _ => raise Fail ("eval: " ^ s ^ " expects a pair of real arrays as argument")))
 
+fun lift_rxrN_rN s (opr : real * real list -> real list) : string * v =
+    (s, Fun_v(fn (Tuple_v[Real_v r,Array_v vs]) =>
+                 let val rs = map (toReal s) vs
+                     val rs' = opr (r,rs)
+                     val vs' = map Real_v rs'
+                 in Array_v vs'
+                 end
+               | _ => raise Fail ("eval: " ^ s ^ " expects a pair of real and a real array as argument")))
+
 val VEinit : v env =
     [lift1r "abs" (fn r => if r < 0.0 then ~r else r),
      lift1r "sin" Math.sin,
@@ -208,6 +217,7 @@ val VEinit : v env =
      lift1r "exp" Math.exp,
      lift1r "ln" Math.ln,
      lift_rNxrN_r "dprod" (ListPair.foldlEq(fn (r1,r2,a) => a + (r1*r2)) 0.0),
+     lift_rxrN_rN "sprod" (fn (r,rs) => List.map (fn q => q*r) rs),
      ("pi", Real_v (Math.pi))]
 
 val VEempty : v env = nil
