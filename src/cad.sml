@@ -132,7 +132,7 @@ fun compile (prg, exp_opt) =
               let val t = #2(Ast.info_of_exp e)
               in case Ast.un_tuple t of
                      SOME tys => E.DSL.prj(length tys,i,ce e)
-                   | NONE => dieReg r "compile: unresolved tuple"
+                   | NONE => dieReg r ("compile: unresolved tuple - type is " ^ Ast.pr_ty t)
               end
             | Ast.App(f,e,_) => E.DSL.apply(f,ce e)
             | Ast.Pow(f,e,_) => E.DSL.pow f (ce e)

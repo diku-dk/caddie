@@ -103,7 +103,10 @@ fun sprod (R s,T vs) =
   | sprod (s,v) = Bilin(Prim.Sprod,s,v)
 
 fun norm2sq (R x,R y) : v = R(Prim.norm2sq(x,y))
-  | norm2sq _ = die "norm2sq expects two real values"
+  | norm2sq (Z, R y) : v = R(Prim.norm2sq(0.0,y))
+  | norm2sq (R x, Z) : v = R(Prim.norm2sq(x,0.0))
+  | norm2sq (v1, v2) = Bilin(Prim.Norm2Sq,v1,v2)
+(*    die ("norm2sq expects two real values - received " ^ pp v1 ^ " and " ^ pp v2)*)
 
 fun bilin0 p : v * v -> v =
     case p of

@@ -687,6 +687,7 @@ fun resolve_t t =
                                                        SOME t => t
                                                      | NONE => real_ty)
              in unify_ty reg0 (tuple_ty ts, t)
+              ; app resolve_t ts
              end
         end
       | Real_ti => ()
