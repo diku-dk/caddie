@@ -31,5 +31,6 @@ signature EXP = sig
     val sprod : e -> e
     val norm2sq : e -> e
     val map : var * e * e -> e
+    val red : Rel.r * e -> e
   end
 end

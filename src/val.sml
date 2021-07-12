@@ -145,8 +145,8 @@ fun fmap_f f fa = f o fa
 
 fun mapM (f:v -> v M) (vs:v) : v M =
     case unT vs of
-	SOME vs' => T (List.map f vs')
-       | NONE  => die "mapM: map expects a list" 
+        SOME vs' => T (List.map f vs')
+       | NONE  => die "mapM: map expects a list"
 
 val map = mapM
 
@@ -155,9 +155,16 @@ fun mapP (xam : v -> 'a) (eval: 'a -> v) (vs:v) : v =
 
 fun zipM (fs:(v -> v M) list) (vs:v) : v M =
     case unT vs of
-	SOME vs' => T (ListPair.mapEq (fn (f, v) => f v) (fs, vs'))
-       | NONE  => die "zipM: zip expects a list" 
+        SOME vs' => T (ListPair.mapEq (fn (f, v) => f v) (fs, vs'))
+       | NONE  => die "zipM: zip expects a list"
 
 val zip = zipM
 
+fun fold (s:string) (f: v -> v) (ne : v) : v -> v =
+  fn T xs => foldl (fn (v1, v2) => f (T [v1,v2])) ne xs
+     | v => die ("type error fold - expecting list (" ^ s ^ ") - got " ^ pp v)
+
+val sum = fold "sum" add Z
+
+fun red r v = T (List.map (sum o T o List.map (nth v) o Rel.toFunc r) (Rel.eval_index (Rel.domain r)))
 end

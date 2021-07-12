@@ -25,6 +25,7 @@ datatype e =
        | Let of var * e * e
        | Apply of string * e
        | Map of var * e * e
+       | Red of Rel.r * e
 
 fun pp e =
     case e of
@@ -41,6 +42,7 @@ fun pp e =
       | Let(x,e1,e2) => "let " ^ x ^ " = " ^ pp e1 ^ " in " ^ pp e2 ^ " end"
       | Apply (f,e) => "(" ^ f ^ "(" ^ pp e ^ "))"
       | Map(x,f,es)  => "(map (fn " ^ x ^ " => " ^ pp f ^ ") " ^ pp es ^ ")"
+      | Red(r,e) => "(red " ^ Rel.pp r ^ " " ^ pp e ^ ")"
 
 fun lrangle [f] = f
   | lrangle fs = F.Comp(F.FProd fs,F.Dup (length fs))
@@ -85,6 +87,7 @@ fun trans0 E e =
       | Prj(n,i,e) => F.Comp (F.Prj(n,i),trans0 E e)
       | Apply(f,e) => F.Comp (F.DSL.named f, trans0 E e)
       | Map(x,f,e) => F.Comp(F.Map (trans0 (init [x]) f), trans0 E e)
+      | Red(r,e) => F.Comp(F.Red r, trans0 E e)
 
 fun trans (vs:var list) e =
     trans0 (init vs) e
@@ -118,6 +121,7 @@ fun snart (vs:var list) f =
               | F.If(f,g,h) => If(s f e,s g e,s h e)
               | F.NamedFun f => Apply(f,e)
 	      | F.Map f => Map ("x", s f (V "x"), e)
+              | F.Red r => Red(r,e)
     in case vs of
            [x] => s f (V x)
          | _ => s f (Tuple (map V vs))
@@ -149,5 +153,6 @@ structure DSL = struct
   val sprod = fn e => Bilin(Prim.Sprod,prj(2,1,e),prj(2,2,e))
   val norm2sq = fn e => Bilin(Prim.Norm2Sq,prj(2,1,e),prj(2,2,e))
   val map = Map
+  val red = Red
 end
 end

@@ -137,8 +137,29 @@ fun compile (prg, exp_opt) =
               end
             | Ast.App(f,e,_) => E.DSL.apply(f,ce e)
             | Ast.Pow(f,e,_) => E.DSL.pow f (ce e)
-	    | Ast.Map(x,f,es,_) => E.DSL.map (x, ce f, ce es)
-	    | Ast.Iota(n,_)  => E.DSL.const (V.iota n)
+            | Ast.Map(x,f,es,_) => E.DSL.map (x, ce f, ce es)
+            | Ast.Iota(n,_)  => E.DSL.const (V.iota n)
+            | Ast.Red(rel,es,(r,_)) =>
+                 let fun compile_index e : Rel.index =
+                      case e of
+                         Ast.Int(n,_)    => Rel.Single n
+                       | Ast.Array(es,_) =>
+                           Rel.Enum (map (fn (Ast.Int(n,_)) => n | e => dieReg r (Ast.pr_exp e)) es)
+                       | Ast.Range(Ast.Int(from,_),Ast.Int(to,_),Ast.Int(step,_),_)  =>
+                         Rel.Range(from,to,step)
+                       | _ => dieReg r ("compile_index: unsupported index: " ^ Ast.pr_exp e)
+                    fun compile_rel rel =
+                      case rel of
+                         Ast.Func("to",SOME (Ast.Int(n,_)),from,to,_) =>
+                           Rel.Func(Rel.To n, compile_index from, compile_index to)
+                        | Ast.Trans (r,_) => Rel.Trans (compile_rel r)
+                        | Ast.Comp(r1,r2,_)  => Rel.Comp(compile_rel r1, compile_rel r2)
+                        | Ast.Pairs(Ast.Array(es,_),_)  =>
+                           Rel.Pairs (map (fn (Ast.Tuple ([Ast.Int(x,_),Ast.Int(y,_)],_)) => (x,y) | _ => dieReg r "oops2") es)
+                        | _ => dieReg r ("compile_rel: unsupported rel: " ^ Ast.pr_rel rel)
+                 in E.DSL.red(compile_rel rel, ce es)
+                 end
+            | e  => dieReg (#1(Ast.info_of_exp e)) ("compile: unsupported exp: " ^ Ast.pr_exp e)
       fun cf (f,x,e:(Region.reg*Ast.ty) Ast.exp,i) : string*string*E.e*(Region.reg*Ast.ty) =
           (f,x,ce e,i)
       val () = debug("Compiling program")

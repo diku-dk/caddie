@@ -1,0 +1,5 @@
+fun f xs = map (fn x => x * x) xs
+
+fun g xss = map (fn xs => (map (fn x => x * x) xs)) xss
+
+fun h xs = map (fn x => let y = x * x in let z = y * y in z + z end end) xs

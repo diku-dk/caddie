@@ -16,6 +16,7 @@ datatype v = R of real
            | Map of var * v M * v
            | Zip of var * v list * v
            | Nth of v * int
+           | Red of Rel.r * v
 withtype 'a M = 'a * (string * v)list
 
 val VarOpt = SOME Var
@@ -49,6 +50,7 @@ fun pp v =
       | Map(x,f,vs) => "(map (fn " ^ x ^ " => " ^ ppM0 "" pp pp f ^ ") " ^ pp vs ^ ")"
       | Zip (x,fs,vs) => "(zip [" ^ String.concatWith "," (map (fn f => "fn " ^ x ^ " => " ^ pp f) fs) ^ "])"
       | Nth(v,n) => pp v ^ "[" ^ Int.toString n ^ "]"
+      | Red(r,v)  => "red(" ^ Rel.pp r ^ "," ^ pp v ^ ")"
 
 fun ppM (ind:string) (pp0:'a -> string) (m: 'a M) : string =
     ppM0 ind pp pp0 m
@@ -173,6 +175,7 @@ fun simpl0 v =
       | Map(x, f, vs)  => Map (x, simplM f, simpl0 vs)
       | Zip(x,fs,vs)  => Zip(x, map simpl0 fs, simpl0 vs)
       | Nth(v,n)  => Nth(simpl0 v, n)
+      | Red (r, v) => Red(r, simpl0 v)
 and simplM (v,bs) = (simpl0 v,map (fn (x,v) => (x,simpl0 v)) bs)
 
 fun simpl1 e =
@@ -212,6 +215,7 @@ fun subst S e =
       | Map (x, f, v)  => Map (x, substM S f, subst S v)
       | Zip (x, fs, vs)  => Zip (x, fs, subst S vs)
       | Nth (v, n)  =>  Nth (subst S v, n)
+      | Red (r, v)  => Red (r, subst S v)
 
 and substM S (v,bs) =
     (subst S v,map (fn (x,e) => (x,subst S e)) bs)
@@ -266,6 +270,7 @@ fun isComplex v =
       | Map _ =>  true
       | Zip _  =>  true
       | Nth (v,_) =>  isComplex v
+      | Red _  =>  true
 
 val newVar =
     let val c = ref 0
@@ -293,9 +298,9 @@ val fmap : ('a -> 'b) -> 'a M -> 'b M = fn f => fn m =>  m >>= (fn x => ret (f x
 
 fun sequence (mas : ('a M) list) =
     case mas of
-	 nil => ret nil
+         nil => ret nil
        | (ma :: mas') =>
-	   ma >>= (fn a =>
+           ma >>= (fn a =>
            sequence mas' >>= (fn as' =>
            ret (a :: as')))
 
@@ -336,4 +341,6 @@ fun zipM (fs:(v -> v M) list) (vs:v) : v M =
 
 fun zip (fs : (v -> v) list) =
     getVal o zipM ((List.map (fn f => ret o f)) fs)
+
+fun red (r: Rel.r) (v:v) = Red (r,v)
 end

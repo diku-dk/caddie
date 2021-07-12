@@ -43,4 +43,6 @@ signature VAL = sig
   val mapP        : 'a f M -> ('a -> v M) -> v -> v
   val zipM        : (v -> v M) list -> v -> v M
   val zip         : (v -> v) list -> v -> v
+
+  val red         : Rel.r -> v -> v
 end

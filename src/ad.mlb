@@ -1,6 +1,6 @@
 local
   $(SML_LIB)/basis/basis.mlb
-  basis P = bas prim.sig prim.sml val.sig end
+  basis P = bas prim.sig prim.sml rel.sig rel.sml val.sig end
   open P
   fun.sig
   fun.sml

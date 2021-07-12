@@ -16,6 +16,7 @@ signature LIN = sig
   val lmap    : lin -> lin
   val zip     : lin list -> lin
   val lmapP   : lin f M * v -> lin
+  val red   : Rel.r -> lin
 
   (* some linear primitives *)
   val add   : int -> lin              (* n-ary add *)

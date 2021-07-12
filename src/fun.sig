@@ -13,6 +13,7 @@ signature FUN = sig
        | If of f * f * f
        | NamedFun of string
        | Map of f
+       | Red of Rel.r
 
   val pp  : f -> string
   val opt : f -> f
@@ -31,5 +32,7 @@ signature FUN = sig
     val id   : f
     val iff  : f * f * f -> f  (* iff : (A->R)x(A->C)x(A->C) -> A -> C *)
     val named : string -> f
+    val map  : f -> f
+    val red  : Rel.r -> f
   end
 end

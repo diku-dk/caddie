@@ -16,6 +16,7 @@ datatype f =
        | If of f * f * f
        | NamedFun of string
        | Map of f
+       | Red of Rel.r
 
 fun pp e =
     case e of
@@ -32,6 +33,7 @@ fun pp e =
       | If(f,g,h) => "(if " ^ pp f ^ " then " ^ pp g ^ " else " ^ pp h ^ ")"
       | NamedFun f => f
       | Map f => "(map " ^ pp f ^ " )"
+      | Red r => "red(" ^ Rel.pp r ^ ")"
 
 local val t = ref 0
 in fun tick_reset() = t := 0
@@ -72,5 +74,7 @@ structure DSL = struct
   val iff = If
   val ~ = Uprim Prim.Neg
   val named = NamedFun
+  val map = Map
+  val red = Red
 end
 end

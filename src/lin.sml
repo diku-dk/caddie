@@ -16,9 +16,10 @@ datatype lin = Lin of string * (v -> v)
              | CurL of Prim.bilin * v
              | CurR of Prim.bilin * v
              | If of v * lin M * lin M
-	     | LMap of lin
+             | LMap of lin
              | Zip of lin list
              | LMapP of lin f M * v
+             | Red of Rel.r
 
 val lin = Lin
 fun prj d i = Prj (d,i)
@@ -31,6 +32,7 @@ val curR = CurR
 val lmap = LMap
 val zip = Zip
 val lmapP = LMapP
+val red = Red
 
 val add = Add
 val dup = Dup
@@ -56,6 +58,7 @@ fun pp e =
       | LMap f => "(lmap (" ^ pp f ^ "))"
       | Zip fs => "(zip (" ^ String.concatWith "," (map pp fs) ^ "))"
       | LMapP (f, vs) => "(lmapP (" ^ V.ppM "   " (V.pp_f pp) f ^ "," ^ V.pp vs ^ "))"
+      | Red r => "red(" ^ Rel.pp r ^ ")"
 
 val ret = V.ret
 infix >>=
@@ -102,6 +105,7 @@ fun eval (e:lin) (x:v) : v V.M =
       | Zip fs  => V.zipM (map eval fs) x
       | LMapP (f, vs)  =>
          ret (V.mapP f (fn l => ret(V.mapM (eval l) x)) vs)
+      | Red r => ret (V.red r x)
 
 and evals fs xs =
     case (fs,xs) of
@@ -141,5 +145,6 @@ fun adjoint (e:lin) : lin =
       | LMap f => LMap (adjoint f)
       | Zip fs  => Zip (map adjoint fs)
       | LMapP (f, vs) => LMapP (V.fmap (V.fmap_f adjoint) f, vs)  (* fix *)
+      | Red r => Red (Rel.trans r)
 
 end
