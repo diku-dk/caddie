@@ -2,6 +2,7 @@
 signature AST = sig
 
   datatype 'i exp = Real of real * 'i
+                  | Zero of 'i
                   | Let of string * 'i exp * 'i exp * 'i
                   | Add of 'i exp * 'i exp * 'i
                   | Sub of 'i exp * 'i exp * 'i
@@ -133,6 +134,7 @@ structure P = Parse(type token = T.token
 open P
 
 datatype 'i exp = Real of real * 'i
+                | Zero of 'i
                 | Let of string * 'i exp * 'i exp * 'i
                 | Add of 'i exp * 'i exp * 'i
                 | Sub of 'i exp * 'i exp * 'i
@@ -155,6 +157,7 @@ fun pr_exp (e: 'i exp) : string =
                 let val s = real_to_string r
                 in if p = 9 then " " ^ s else s
                 end
+              | Zero r =>  if p = 9 then " 0" else "0"
               | Let (x,e1,e2,_) => "let " ^ x ^ " = " ^ pr 0 e1 ^ " in " ^ pr 0 e2 ^ " end"
               | Add (e1,e2,_) => par p 6 (pr 6 e1 ^ "+" ^ pr 6 e2)
               | Sub (e1,e2,_) => par p 6 (pr 6 e1 ^ "-" ^ pr 6 e2)
@@ -169,29 +172,36 @@ fun pr_exp (e: 'i exp) : string =
     in pr 0 e
     end
 
-datatype v = Real_v of real | Fun_v of v -> v | Tuple_v of v list | Array_v of v list
+datatype v = Real_v of real | Fun_v of v -> v | Tuple_v of v list | Array_v of v list | Zero_v
 
 fun real_v r = Real_v r
 
 type 'a env = (string * 'a)list
 
 fun pr_v (Real_v r) = real_to_string r
+  | pr_v Zero_v = "0"
   | pr_v (Fun_v _) = "fn"
   | pr_v (Tuple_v vs) = "(" ^ String.concatWith "," (map pr_v vs) ^ ")"
   | pr_v (Array_v vs) = "[" ^ String.concatWith "," (map pr_v vs) ^ "]"
 
-fun lift1r s (opr : real -> real) : string * v =
-    (s, Fun_v(fn (Real_v r) => Real_v(opr r)
-               | _ => raise Fail ("eval: " ^ s ^ " expects a real argument")))
-
-fun lift2r s (opr : real*real -> real) : string * v =
-    (s, Fun_v(fn (Tuple_v[Real_v r1,Real_v r2]) => Real_v(opr (r1,r2))
-               | _ => raise Fail ("eval: " ^ s ^ " expects a pair of reals as argument")))
-
 fun toReal s (v:v) : real =
     case v of
         Real_v r => r
+      | Zero_v => 0.0
       | _ => raise Fail ("eval: " ^ s ^ " expecting real")
+
+fun lift1r s (opr : real -> real) : string * v =
+    (s, Fun_v(fn v => Real_v(opr (toReal s v))))
+
+fun lift_rxr_r s (opr : real * real -> real) : string * v =
+    (s, Fun_v(fn (Tuple_v[v1,v2]) =>
+                 let val r1 = toReal s v1
+                     val r2 = toReal s v2
+                     val r' = opr (r1,r2)
+                 in Real_v r'
+                 end
+               | Zero_v => Zero_v  (* works for norm2sq *)
+               | _ => raise Fail ("eval: " ^ s ^ " expects a pair of reals as argument")))
 
 fun lift_rNxrN_r s (opr : real list * real list -> real) : string * v =
     (s, Fun_v(fn (Tuple_v[Array_v vs1,Array_v vs2]) =>
@@ -202,8 +212,9 @@ fun lift_rNxrN_r s (opr : real list * real list -> real) : string * v =
                | _ => raise Fail ("eval: " ^ s ^ " expects a pair of real arrays as argument")))
 
 fun lift_rxrN_rN s (opr : real * real list -> real list) : string * v =
-    (s, Fun_v(fn (Tuple_v[Real_v r,Array_v vs]) =>
-                 let val rs = map (toReal s) vs
+    (s, Fun_v(fn (Tuple_v[v,Array_v vs]) =>
+                 let val r = toReal s v
+                     val rs = map (toReal s) vs
                      val rs' = opr (r,rs)
                      val vs' = map Real_v rs'
                  in Array_v vs'
@@ -211,11 +222,24 @@ fun lift_rxrN_rN s (opr : real * real list -> real list) : string * v =
                | _ => raise Fail ("eval: " ^ s ^ " expects a pair of real and a real array as argument")))
 
 fun lift_r3xr3_r3 s (opr : (real*real*real) * (real*real*real) -> (real*real*real)) : string * v =
-    (s, Fun_v(fn (Tuple_v[Tuple_v[Real_v a1,Real_v a2, Real_v a3],
-                          Tuple_v[Real_v b1,Real_v b2, Real_v b3]]) =>
-                 let val (r1,r2,r3) = opr ((a1,a2,a3),(b1,b2,b3))
+    (s, Fun_v(fn (Tuple_v[Tuple_v[a1,a2,a3],
+                          Tuple_v[b1,b2,b3]]) =>
+                 let val (a1,a2,a3) = (toReal s a1,toReal s a2,toReal s a3)
+                     val (b1,b2,b3) = (toReal s b1,toReal s b2,toReal s b3)
+                     val (r1,r2,r3) = opr ((a1,a2,a3),(b1,b2,b3))
                  in Tuple_v[Real_v r1,Real_v r2,Real_v r3]
                  end
+               | _ => raise Fail ("eval: " ^ s ^ " expects a pair of two triples of reals")))
+
+fun lift_r3xr3_r s (opr : (real*real*real) * (real*real*real) -> real) : string * v =
+    (s, Fun_v(fn (Tuple_v[Tuple_v[a1,a2,a3],
+                          Tuple_v[b1,b2,b3]]) =>
+                 let val (a1,a2,a3) = (toReal s a1,toReal s a2,toReal s a3)
+                     val (b1,b2,b3) = (toReal s b1,toReal s b2,toReal s b3)
+                     val r' = opr ((a1,a2,a3),(b1,b2,b3))
+                 in Real_v r'
+                 end
+               | Zero_v => Zero_v
                | _ => raise Fail ("eval: " ^ s ^ " expects a pair of two triples of reals")))
 
 fun lift_rNxrN_rN s (opr : real list * real list -> real list) : string * v =
@@ -239,9 +263,11 @@ val VEinit : v env =
      lift_rxrN_rN "sprod" (fn (r,rs) => List.map (fn q => q*r) rs),
      lift_r3xr3_r3 "cprod3" (fn ((a1,a2,a3),(b1,b2,b3)) =>
                                 (a2*b3-a3*b2, a3*b1-a1*b3, a1*b2-a2*b1)),
+     lift_r3xr3_r "dprod3" (fn ((a1,a2,a3),(b1,b2,b3)) => (a1*b1+a2*b2+a3*b3)),
      lift_rNxrN_rN "cross" (fn ([a1,a2,a3],[b1,b2,b3]) =>
                                [a2*b3-a3*b2, a3*b1-a1*b3, a1*b2-a2*b1]
-                             | _ => raise Fail ("eval: cross is defined only in the three dimensional space")),
+                           | _ => raise Fail ("eval: cross is defined only in the three dimensional space")),
+     lift_rxr_r "norm2sq" (fn (r1,r2) => Math.sqrt(r1*r1+r2*r2)),
      ("pi", Real_v (Math.pi))]
 
 val VEempty : v env = nil
@@ -253,23 +279,68 @@ fun insert (E: 'a env) (k:string,v:'a) : 'a env = (k,v)::E
 
 fun plus (E1, E2) = E2 @ E1
 
-fun liftBin opr v1 v2 : v =
+fun liftNeg i v : v =
+    case v of
+        Real_v r => Real_v(~r)
+      | Tuple_v vs => Tuple_v (List.map (liftNeg i) vs)
+      | Array_v vs => Array_v (List.map (liftNeg i) vs)
+      | Zero_v => Zero_v
+      | _ => dieReg i "liftNeg: expecting structured real value"
+
+fun liftSub i (v1,v2) : v =
     case (v1,v2) of
-        (Real_v r1, Real_v r2) => Real_v(opr(r1,r2))
-      | _ =>  raise Fail "liftBin: expecting reals"
+        (Real_v r1, Real_v r2) => Real_v(r1-r2)
+      | (Tuple_v vs1, Tuple_v vs2) =>
+        (Tuple_v (ListPair.mapEq (liftSub i) (vs1,vs2))
+         handle ListPair.UnequalLengths =>
+                dieReg i "liftSub: expecting tuples of equal lengths")
+      | (Array_v vs1, Array_v vs2) =>
+        (Array_v (ListPair.mapEq (liftSub i) (vs1,vs2))
+         handle ListPair.UnequalLengths =>
+                dieReg i "liftSub: expecting arrays of equal lengths")
+      | (v1,Zero_v) => v1
+      | (Zero_v,v2) => liftNeg i v2
+      | _ => dieReg i "liftSub: expecting matching structured values"
+
+fun liftAdd i (v1,v2) : v =
+    case (v1,v2) of
+        (Real_v r1, Real_v r2) => Real_v(r1+r2)
+      | (Tuple_v vs1, Tuple_v vs2) =>
+        (Tuple_v (ListPair.mapEq (liftAdd i) (vs1,vs2))
+         handle ListPair.UnequalLengths =>
+                dieReg i "liftAdd: expecting tuples of equal lengths")
+      | (Array_v vs1, Array_v vs2) =>
+        (Array_v (ListPair.mapEq (liftAdd i) (vs1,vs2))
+         handle ListPair.UnequalLengths =>
+                dieReg i "liftAdd: expecting arrays of equal lengths")
+      | (Zero_v,v2) => v2
+      | (v1,Zero_v) => v1
+      | _ => dieReg i "liftAdd: expecting matching structured values"
+
+fun liftMulPow i opr v : v =
+    case v of
+        Real_v r => Real_v (opr r)
+      | Tuple_v vs => Tuple_v (map (liftMulPow i opr) vs)
+      | Array_v vs => Array_v (map (liftMulPow i opr) vs)
+      | Zero_v => Zero_v (* ok for mul and pow *)
+      | _ => dieReg i "liftMulPow: expecting structured value of reals"
 
 fun eval (regof:'i -> Region.reg) (E:v env) (e:'i exp) : v =
     let fun ev E e =
             case e of
                 Real (r,_) => Real_v r
+              | Zero r => Zero_v
               | Let (x,e1,e2,_) => ev ((x,ev E e1)::E) e2
               | Var (x,i) =>
                 (case look E x of
                      SOME v => v
                    | NONE => dieReg (regof i) ("unknown variable: " ^ x))
-              | Add (e1,e2,_) => liftBin op+ (ev E e1) (ev E e2)
-              | Sub (e1,e2,_) => liftBin op- (ev E e1) (ev E e2)
-              | Mul (e1,e2,_) => liftBin op* (ev E e1) (ev E e2)
+              | Add (e1,e2,i) => liftAdd (regof i) (ev E e1, ev E e2)
+              | Sub (e1,e2,i) => liftSub (regof i) (ev E e1, ev E e2)
+              | Mul (e1,e2,i) =>
+                (case ev E e1 of
+                     Real_v r => liftMulPow (regof i) (fn r' => r * r') (ev E e2)
+                   | _ => dieReg (regof i) ("expecting real as left argument to mul"))
               | App (f,e,i) => (case look E f of
                                     SOME(Fun_v f) => f (ev E e)
                                   | SOME _ => dieReg (regof i) ("expecting function but found " ^ f)
@@ -279,15 +350,18 @@ fun eval (regof:'i -> Region.reg) (E:v env) (e:'i exp) : v =
                                        Tuple_v vs => (List.nth (vs,i-1)
                                                       handle _ =>
                                                              dieReg (regof info) ("index (1-based) out of bound"))
+                                     | Zero_v => Zero_v
                                      | _ => dieReg (regof info) "expecting tuple")
 	      | Map (x,f,es,info) =>
                 (case ev E es of
                      Array_v vs => Array_v (List.map (fn v => ev (insert E (x, v)) f) vs)
+                   | Zero_v => Zero_v
                    | _  => dieReg (regof info) "expecting array"
                 )
 	      | Iota (n,_) => Array_v (List.tabulate (n, real_v o Real.fromInt))
-              | Pow (r,e,i) => liftBin (fn (r1,r2) => Math.pow(r2,r1))
-                                       (Real_v r) (ev E e)
+              | Pow (r,e,i) => liftMulPow (regof i)
+                                          (fn r' => Math.pow(r',r))
+                                          (ev E e)
     in ev E e
     end
 
@@ -295,6 +369,12 @@ fun locOfTs nil = Region.botloc
   | locOfTs ((_,(l,_))::_) = l
 
 val kws = ["let", "in", "end", "fun", "map", "iota", "fn", "pow"]
+
+val p_zero : unit p =
+ fn ts =>
+    case ts of
+        (T.Num "0",r)::ts' => OK ((),r,ts')
+      | _ => NO(locOfTs ts, fn () => "zero")
 
 val p_int : int p =
  fn ts =>
@@ -363,6 +443,7 @@ and p_ae : rexp p =
        (    ((p_var >>> p_ae) oor (fn ((v,e),r) => App(v,e,r)))
          || (((p_kw "pow" ->> p_real) >>> p_ae) oor (fn ((f,e),r) => Pow(f,e,r)))
          || (p_var oor Var)
+         || (p_zero oor (fn ((),i) => Zero i))
          || (p_real oor Real)
          || (((p_symb "#" ->> p_int) >>> p_ae) oor (fn ((i,e),r) => Prj(i,e,r)))
          || ((p_seq "(" ")" p_e) oor (fn ([e],_) => e | (es,r) => Tuple (es,r)))
@@ -498,6 +579,7 @@ val TEinit : ty env =
      ("ln", fun_ty(real_ty,real_ty)),
      ("cprod3", fun_ty(pair_ty(real3_ty,real3_ty),real3_ty)),
      ("cross", fun_ty(pair_ty(real_arr_ty,real_arr_ty),real_arr_ty)),  (* cprod3 on arrays *)
+     ("dprod3", fun_ty(pair_ty(real3_ty,real3_ty),real_ty)),
      ("dprod", fun_ty(pair_ty(real_arr_ty,real_arr_ty),real_ty)),
      ("sprod", fun_ty(pair_ty(real_ty,real_arr_ty),real_arr_ty)),
      ("norm2sq", fun_ty(pair_ty(real_ty,real_ty),real_ty)),
@@ -580,6 +662,7 @@ fun unify_prj_ty (r:Region.reg) (i,ty,tuplety) =
 fun info_of_exp (e: 'i exp) : 'i =
     case e of
         Real(_,i) => i
+      | Zero i => i
       | Let(_,_,_,i) => i
       | Add(_,_,i) => i
       | Sub(_,_,i) => i
@@ -593,31 +676,38 @@ fun info_of_exp (e: 'i exp) : 'i =
       | Pow(_,_,i) => i
 
 fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
-    let fun tyinf_rbin opr (e1,e2,r) =
+    let fun tyinf_svbin opr (e1,e2,r) =
             let val (e1',ty1) = tyinf_exp TE e1
                 val (e2',ty2) = tyinf_exp TE e2
             in unify_ty (info_of_exp e1) (ty1,real_ty)
-             ; unify_ty (info_of_exp e2) (ty2,real_ty)
-             ; (opr (e1',e2',(r,real_ty)), real_ty)
+             ; (opr (e1',e2',(r,ty2)), ty2)
             end
-        fun tyinf_bin opr (e1,e2,r) =
+        fun tyinf_vbin opr (e1,e2,r) =
             let val (e1',ty1) = tyinf_exp TE e1
                 val (e2',ty2) = tyinf_exp TE e2
-                val t = fresh_ty()
-            in unify_ty (info_of_exp e1) (ty1,t)
-             ; unify_ty (info_of_exp e2) (ty2,t)
-             ; (opr (e1',e2',(r,t)), t)
+            in unify_ty (info_of_exp e2) (ty1,ty2)
+             ; (opr (e1',e2',(r,ty1)), ty1)
             end
+    (* Several operators (and values) are generic:
+        - Add : 'a * 'a -> 'a
+        - Sub : 'a * 'a -> 'a
+        - 0 : 'a
+        - Mul : real * 'a -> 'a
+     *)
     in case e of
            Real (f,r) => (Real (f,(r,real_ty)), real_ty)
+         | Zero r =>
+           let val t = fresh_ty()
+           in (Zero (r,t), t)
+           end
          | Let (x,e1,e2,r) =>
            let val (e1',ty1) = tyinf_exp TE e1
                val (e2',ty2) = tyinf_exp (insert TE (x,ty1)) e2
            in (Let (x,e1',e2',(r,ty2)), ty2)
            end
-         | Add (e1,e2,r) => tyinf_bin Add (e1,e2,r)  (* Add is generic : 'a * 'a -> 'a  ('a <> fun type) *)
-         | Sub (e1,e2,r) => tyinf_rbin Sub (e1,e2,r)
-         | Mul (e1,e2,r) => tyinf_rbin Mul (e1,e2,r)
+         | Add (e1,e2,r) => tyinf_vbin Add (e1,e2,r)
+         | Sub (e1,e2,r) => tyinf_vbin Sub (e1,e2,r)
+         | Mul (e1,e2,r) => tyinf_svbin Mul (e1,e2,r)
          | Var (x,r) => (case look TE x of
                              SOME ty => (Var(x,(r,ty)),ty)
                            | NONE => dieReg r ("unknown variable: " ^ x))
@@ -665,7 +755,8 @@ val reg0 = (Region.botloc,Region.botloc)
 (* Resolve non-instantiated type variables by analysing the
  * type constraints; non-constrained type variables are instantiated
  * to type real. Projection constraints guide the number of elements
- * and the element types in each tuple type. *)
+ * and the element types in each tuple type. Notice: Projections
+ * project from tuples, not from arrays. *)
 
 fun resolve_t t =
     case URef.!! t of
