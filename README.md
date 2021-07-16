@@ -1,18 +1,22 @@
-# Notes on Combinatory AD
+# caddie [![CI](https://github.com/diku-dk/caddie/workflows/CI/badge.svg)](https://github.com/diku-dk/caddie/actions)
 
-This implementation of combinatory AD (CAD) is a library, written in
-Standard ML, that provides for both forward-mode AD (FAD) and
-reverse-mode AD (RAD). The ultimate aim is for the implementation to
-generate efficient gradient code (in different languages; e.g.,
-Futhark) for code specified in a high-level (domain-specific)
-functional language. The implementation first turns source code into
-combinatory form, which can then be differentiated, resulting in (1)
-code for evaluating the zero-order representation of the program and
-(2) a linear-map representation of the derivative. The linear-map is
-an abstract structure, which can be interpreted in a forward-mode
-setting (for generating code according to a forward-mode AD strategy)
-or be transposed (forming an adjoint) before being interpreted, which
-will generate code according to a reverse-mode AD strategy.
+Combinatory Automatic Differentiation
+
+## Combinatory AD
+
+This implementation of combinatory AD is a standalone tool, which
+provides for both forward-mode AD (FAD) and reverse-mode AD (RAD). The
+ultimate aim is for the implementation to generate efficient gradient
+code (in different languages; e.g., [Futhark](https://futhark-lang.org)) for code specified in a
+high-level (domain-specific) functional language. The implementation
+first turns source code into combinatory form, which can then be
+differentiated, resulting in (1) code for evaluating the zero-order
+representation of the program and (2) a linear-map representation of
+the derivative. The linear-map is an abstract structure, which can be
+interpreted in a forward-mode setting (for generating code according
+to a forward-mode AD strategy) or be transposed (forming an adjoint)
+before being interpreted, which will generate code according to a
+reverse-mode AD strategy.
 
 The implementation takes care of avoiding expression swell by
 differentiating and interpreting linear maps in a statement monad.
