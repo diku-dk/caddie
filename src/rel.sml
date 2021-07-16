@@ -27,23 +27,23 @@ fun pp_index d =
     case d of
       Single x => Int.toString x
     | Enum xs => "[" ^ String.concatWith "," (map Int.toString xs) ^ "]"
-    | Range (from, to, step)  => "range(" ^ Int.toString from ^ "," ^ Int.toString  to ^ "," ^ Int.toString step ^ ")" 
+    | Range (from, to, step)  => "range(" ^ Int.toString from ^ "," ^ Int.toString  to ^ "," ^ Int.toString step ^ ")"
 
 fun pp_func f =
     case f of
       Id => "Id"
     | To x => "(To " ^ Int.toString x  ^ ")"
-    | T f => "(" ^ pp_func f ^ ")ᵀ"
+    | T f => "(" ^ pp_func f ^ ")!"
 
 fun pp r =
     case r of
        Func (f, x, y) => "(" ^ pp_func f ^ "," ^ pp_index x ^ "," ^ pp_index y ^ ")"
-     | Trans r => "(" ^ pp r ^ ")ᵀ"
-     | Comp (r2, r1) => "(" ^ pp r2 ^ " o " ^ pp r1 ^ ")"   
-     | Pairs xys => "[" ^ String.concatWith "," (List.map (fn (x,y) => "(" ^ Int.toString x ^ "," ^ Int.toString y ^ ")" ) xys) ^ "]"      
+     | Trans r => "(" ^ pp r ^ ")!"
+     | Comp (r2, r1) => "(" ^ pp r2 ^ " o " ^ pp r1 ^ ")"
+     | Pairs xys => "[" ^ String.concatWith "," (List.map (fn (x,y) => "(" ^ Int.toString x ^ "," ^ Int.toString y ^ ")" ) xys) ^ "]"
 
 fun trans (r : r) : r =
-  case r of 
+  case r of
      Func (T f,from,to) => Func (f, to, from)
    | Func (f,from,to) => Func (T f, to, from)
    | Trans r => r
@@ -54,8 +54,8 @@ fun eval_idx i : int list =
      Single x => [x]
    | Enum xs  => xs
    | Range (from, to, step) =>
-       let fun eval_range (from, to, step) = 
-             if from < to 
+       let fun eval_range (from, to, step) =
+             if from < to
              then from :: eval_range (from + step, to, step)
              else nil
        in eval_range (from, to, step)
@@ -65,7 +65,7 @@ fun eval_f f from to : (int * int) list =
     case f of
         Id => map (fn i => (i, i)) (eval_idx from)
       | To x => map (fn i => (i, x)) (eval_idx from)
-      | T f => eval_f f to from 
+      | T f => eval_f f to from
 
 fun eval (r : r) : (int * int) list =
     case r of
@@ -74,7 +74,7 @@ fun eval (r : r) : (int * int) list =
 fun toFunc (r: r) (x : int) : int list =
     map (#2) (#1 (List.partition (fn (y,_) => y = x) (eval r)))
 
-fun domain (r:r) : index = 
+fun domain (r:r) : index =
     case r of
        Func(_,from,_) => from
      | Trans r => codomain r
@@ -91,9 +91,9 @@ fun eval_index (i : index) : int list =
     case i of
        Single x => [x]
      | Enum xs =>  xs
-     | Range(from,to,step) => 
-         let fun eval_range (from, to, step) = 
-               if from < to 
+     | Range(from,to,step) =>
+         let fun eval_range (from, to, step) =
+               if from < to
                then from :: eval_range (from + step, to, step)
                else nil
          in eval_range (from, to, step)

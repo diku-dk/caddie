@@ -207,7 +207,7 @@ and pr_rel (r: 'i rel) : string =
           SOME e => " " ^ pr_exp e ^ " "
         | NONE => ""
         ) ^ pr_exp from ^ " " ^ pr_exp to
-      | Trans (r, _) => "(" ^ pr_rel r ^ ")ᵀ"
+      | Trans (r, _) => "(" ^ pr_rel r ^ ")!"
       | Comp (r1, r2,_)  => pr_rel r1 ^ " o " ^ pr_rel r2
       | Pairs (es, _) => pr_exp es
 
