@@ -317,9 +317,9 @@ suitable language of choice (e.g., Futhark).
 ## Running the Examples
 
 Try run the examples using `make`. The example definitions are located
-in the `tests` directory (see for instance
-[ad_ex0.sml](tests/ad_ex0.sml), [rad_ex1.sml](tests/rad_ex1.sml), and
-[ba.sml](tests/ba.sml)). The implementation does not yet feature a
+in the `src/tests` directory (see for instance
+[ad_ex0.sml](src/tests/ad_ex0.sml), [rad_ex1.sml](src/tests/rad_ex1.sml), and
+[ba.sml](src/tests/ba.sml)). The implementation does not yet feature a
 parser, which means that new examples are required to be embedded in
 SML source code.
 
@@ -327,11 +327,11 @@ Here is an overview over the examples:
 
  | Source                           | Output                              |
  |----------------------------------|-------------------------------------|
- | [ad_ex0.sml](tests/ad_ex0.sml)   | [ad_ex0.out](tests/ad_ex0.out.ok)   |
- | [ad_ex1.sml](tests/ad_ex1.sml)   | [ad_ex1.out](tests/ad_ex1.out.ok)   |
- | [ba.sml](tests/ba.sml)           | [ba.out](tests/ba.out.ok)           |
- | [rad_ex0.sml](tests/rad_ex0.sml) | [rad_ex0.out](tests/rad_ex0.out.ok) |
- | [rad_ex1.sml](tests/rad_ex1.sml) | [rad_ex1.out](tests/rad_ex1.out.ok) |
+ | [ad_ex0.sml](src/tests/ad_ex0.sml)   | [ad_ex0.out](src/tests/ad_ex0.out.ok)   |
+ | [ad_ex1.sml](src/tests/ad_ex1.sml)   | [ad_ex1.out](src/tests/ad_ex1.out.ok)   |
+ | [ba.sml](src/tests/ba.sml)           | [ba.out](src/tests/ba.out.ok)           |
+ | [rad_ex0.sml](src/tests/rad_ex0.sml) | [rad_ex0.out](src/tests/rad_ex0.out.ok) |
+ | [rad_ex1.sml](src/tests/rad_ex1.sml) | [rad_ex1.out](src/tests/rad_ex1.out.ok) |
 
 ## Conditionals
 
