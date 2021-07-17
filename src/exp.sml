@@ -14,8 +14,8 @@ type v = V.v
 type var = string
 
 datatype e =
-         V of var
-       | C of v
+         Var of var
+       | Const of v
        | Uprim of Prim.uprim * e
        | Bilin of Prim.bilin * e * e
        | Add of e * e
@@ -29,8 +29,8 @@ datatype e =
 
 fun pp e =
     case e of
-        V var => var
-      | C v => V.pp v
+        Var var => var
+      | Const v => V.pp v
       | Uprim(p,e) => Prim.pp_uprim p ^ "(" ^ pp e ^ ")"
       | Bilin(p,e1,e2) => "(" ^ pp e1 ^ Prim.pp_bilin p ^ pp e2 ^ ")"
       | Add(e1,e2) => "(" ^ pp e1 ^ "+" ^ pp e2 ^ ")"
@@ -72,11 +72,11 @@ fun init (xs:var list) : delta =
 
 fun trans0 E e =
     case e of
-        V "pi" => F.K (V.R (Math.pi))
-      | V x => (case lookup E x of
-                    SOME f => f
-                  | NONE => die ("trans: unbound variable " ^ x))
-      | C v => F.K v
+        Var "pi" => F.K (V.R (Math.pi))
+      | Var x => (case lookup E x of
+                      SOME f => f
+                    | NONE => die ("trans: unbound variable " ^ x))
+      | Const v => F.K v
       | Uprim(p,e) => F.Comp (F.Uprim p, trans0 E e)
       | Bilin(p,e1,e2) => hat (F.Bilin p) (trans0 E e1,trans0 E e2)
       | Add(e1,e2) => hat F.Add (trans0 E e1,trans0 E e2)
@@ -95,7 +95,7 @@ fun trans (vs:var list) e =
 fun snart (vs:var list) f =
     let fun s f (e:e) =
             case f of
-                F.K v => C v
+                F.K v => Const v
               | F.Prj(1,1) => e
               | F.Prj(n,i) => (case e of
                                    Tuple es =>
@@ -120,11 +120,11 @@ fun snart (vs:var list) f =
               | F.Bilin p => Bilin(p,s (F.Prj(2,1)) e,s (F.Prj(2,2)) e)
               | F.If(f,g,h) => If(s f e,s g e,s h e)
               | F.NamedFun f => Apply(f,e)
-	      | F.Map f => Map ("x", s f (V "x"), e)
+	      | F.Map f => Map ("x", s f (Var "x"), e)
               | F.Red r => Red(r,e)
     in case vs of
-           [x] => s f (V x)
-         | _ => s f (Tuple (map V vs))
+           [x] => s f (Var x)
+         | _ => s f (Tuple (map Var vs))
     end
 
 structure DSL = struct
@@ -137,11 +137,10 @@ structure DSL = struct
   val op + : e * e -> e = Add
   val op * : e * e -> e = fn (x,y) => Bilin(Prim.Mul,x,y)
   val op - : e * e -> e  = fn (x,y) => x + (~y)
-  val const : v -> e = C
-  val x1 : e = V "x1"
-  val x2 : e = V "x2"
-  val Y = V
-  val rec V = fn i => Y i  (* eliminate constructor status *)
+  val const : v -> e = Const
+  val x1 : e = Var "x1"
+  val x2 : e = Var "x2"
+  val V = Var
   val iff : e * e * e -> e = If
   val lett : string * e * e -> e = Let
   val tup = Tuple
