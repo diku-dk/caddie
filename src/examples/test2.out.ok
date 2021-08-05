@@ -4,5 +4,5 @@ Typed program:
  g : (real -> (real * (real * real)))
  g(y) = (#1 (f(ln y,3,2)),f(2,sin(pi*y),4))
 Internal expression program:
- f(x) = ((2.0*#2{of 3}(x)),((3.0+~(#1{of 3}(x)))+#3{of 3}(x)))
- g(y) = (#1((f((ln(y),3.0,2.0)))),(f((2.0,sin((pi*y)),4.0))))
+ f(x) = ((2*#2{of 3}(x)),((3+~(#1{of 3}(x)))+#3{of 3}(x)))
+ g(y) = (#1((f((ln(y),3,2)))),(f((2,sin((pi*y)),4))))

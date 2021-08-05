@@ -30,6 +30,15 @@ fun unR (R v) = SOME v
 fun isZ Z = true
   | isZ _ = false
 
+fun real_to_string r =
+    let val s = CharVector.map (fn #"~" => #"-" | c => c) (Real.toString r)
+    in if size s >= 2
+          andalso String.sub(s,size s - 1) = #"0"
+          andalso String.sub(s,size s - 2) = #"."
+       then String.extract (s,0,SOME(size s - 2))
+       else s
+    end
+
 fun ppM0 (ind:string) (pp:v->string) (pp0:'a -> string) ((x,bs): 'a M) : string =
     case bs of
         nil => ind ^ pp0 x
@@ -38,7 +47,7 @@ fun ppM0 (ind:string) (pp:v->string) (pp0:'a -> string) ((x,bs): 'a M) : string 
              end
 fun pp v =
     case v of
-        R r => Real.toString r
+        R r => real_to_string r
       | T vs => "(" ^ String.concatWith "," (map pp vs) ^ ")"
       | Uprim(p,v) => Prim.pp_uprim p ^ "(" ^ pp v ^ ")"
       | Add(v1,v2) => "(" ^ pp v1 ^ " + " ^ pp v2 ^ ")"

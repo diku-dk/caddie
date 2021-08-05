@@ -15,9 +15,18 @@ fun unR (R v) = SOME v
 fun isZ Z = true
   | isZ _ = false
 
+fun real_to_string r =
+    let val s = CharVector.map (fn #"~" => #"-" | c => c) (Real.toString r)
+    in if size s >= 2
+          andalso String.sub(s,size s - 1) = #"0"
+          andalso String.sub(s,size s - 2) = #"."
+       then String.extract (s,0,SOME(size s - 2))
+       else s
+    end
+
 fun pp v =
     case v of
-        R r => Real.toString r
+        R r => real_to_string r
       | T vs => "(" ^ String.concatWith "," (map pp vs) ^ ")"
       | Z => "Z"
 
