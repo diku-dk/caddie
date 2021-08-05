@@ -40,7 +40,13 @@ fun string_to_int s : int option =
     end
 
 fun real_to_string r =
-    CharVector.map (fn #"~" => #"-" | c => c) (Real.toString r)
+    let val s = CharVector.map (fn #"~" => #"-" | c => c) (Real.toString r)
+    in if size s >= 2
+          andalso String.sub(s,size s - 1) = #"0"
+          andalso String.sub(s,size s - 2) = #"."
+       then String.extract (s,0,SOME(size s - 2))
+       else s
+    end
 
 fun int_to_string n =
     CharVector.map (fn #"~" => #"-" | c => c) (Int.toString n)

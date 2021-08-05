@@ -1,6 +1,6 @@
 Typed program:
  f : (real -> (real * real))
- f(x) = (2.0*x,3.0-x)
+ f(x) = (2*x,3-x)
  g : (real -> (real * (real * real)))
  g(y) = (ln y,f(sin(pi*y)))
 Internal expression program:
