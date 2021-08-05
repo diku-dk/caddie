@@ -1,0 +1,8 @@
+Typed program:
+ f : ((real * real * real) -> (real * real))
+ f(x) = (2.0*#2 x,(3.0-#1 x)+#3 x)
+ g : (real -> (real * (real * real)))
+ g(y) = (#1 (f(ln y,3.0,2.0)),f(2.0,sin(pi*y),4.0))
+Internal expression program:
+ f(x) = ((2.0*#2{of 3}(x)),((3.0+~(#1{of 3}(x)))+#3{of 3}(x)))
+ g(y) = (#1((f((ln(y),3.0,2.0)))),(f((2.0,sin((pi*y)),4.0))))

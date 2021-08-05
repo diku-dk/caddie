@@ -1,76 +1,4 @@
 
-signature AST = sig
-
-  datatype 'i exp = Real of real * 'i
-                  | Int of int * 'i
-                  | Zero of 'i
-                  | Let of string * 'i exp * 'i exp * 'i
-                  | Add of 'i exp * 'i exp * 'i
-                  | Sub of 'i exp * 'i exp * 'i
-                  | Mul of 'i exp * 'i exp * 'i
-                  | Var of string * 'i
-                  | App of string * 'i exp * 'i
-                  | Tuple of 'i exp list * 'i
-                  | Prj of int * 'i exp * 'i
-                  | Map of string * 'i exp * 'i exp * 'i
-                  | Iota of int * 'i
-                  | Pow of real * 'i exp * 'i
-                  | Red of 'i rel * 'i exp * 'i
-                  | Array of 'i exp list * 'i
-                  | Range of 'i exp * 'i exp * 'i exp * 'i
-       and 'i rel = Func of string * ('i exp) option * 'i exp * 'i exp * 'i
-                  | Trans of 'i rel * 'i
-                  | Comp of 'i rel * 'i rel * 'i
-                  | Pairs of 'i exp * 'i
-
-  val pr_exp      : 'i exp -> string
-  val pr_rel      : 'i rel -> string
-  val info_of_exp : 'i exp -> 'i
-
-  type v
-  val pr_v : v -> string
-  val real_v : real -> v
-
-  type 'a env
-  val look    : 'a env -> string -> 'a option
-  val insert  : 'a env -> string * 'a -> 'a env
-  val plus    : 'a env * 'a env -> 'a env
-
-  val VEinit  : v env
-  val VEempty : v env
-  val eval    : ('i -> Region.reg) -> v env -> 'i exp -> v
-
-  val parse   : {srcname:string,input:string} -> Region.reg exp
-
-  type 'i prg = (string * string * 'i exp * 'i) list
-
-  val pr_prg    : 'i prg -> string
-  val eval_prg  : ('i -> Region.reg) -> 'i prg -> string -> v -> v
-  val eval_exp  : ('i -> Region.reg) -> 'i prg -> 'i exp -> v
-  val parse_prg : {srcname:string,input:string} -> Region.reg prg
-
-  type ty
-  val real_ty   : ty
-  val tuple_ty  : ty list -> ty
-  val fun_ty    : ty * ty -> ty
-  val rel_ty    : ty * ty -> ty
-  val fresh_ty  : unit -> ty
-  val eq_ty     : ty * ty -> bool
-  val unify_ty  : Region.reg -> ty * ty -> unit           (* may raise Fail *)
-  val unify_prj_ty : Region.reg -> int * ty * ty -> unit  (* (i,elemty,recordty) *)
-  val pr_ty     : ty -> string
-
-  val un_tuple  : ty -> ty list option
-  val un_array  : ty -> ty option
-  val un_fun    : ty -> (ty*ty)option
-  val is_real   : ty -> bool
-
-  val TEinit    : ty env
-  val TEempty   : ty env
-  val tyinf_exp : ty env -> Region.reg exp -> (Region.reg*ty) exp * ty
-  val tyinf_prg : Region.reg prg -> (Region.reg*ty) prg * ty env
-end
-
 structure Ast :> AST = struct
 
 fun debug_p () = false
@@ -502,8 +430,8 @@ and p_ae : rexp p =
        (    ((p_var >>> p_ae) oor (fn ((v,e),r) => App(v,e,r)))
          || (((p_kw "pow" ->> p_real) >>> p_ae) oor (fn ((f,e),r) => Pow(f,e,r)))
          || (p_var oor Var)
-         || (p_int oor Int)
          || (p_zero oor (fn ((),i) => Zero i))
+         || (p_int oor Int)
          || (p_real oor Real)
          || (((p_symb "#" ->> p_int) >>> p_ae) oor (fn ((i,e),r) => Prj(i,e,r)))
          || ((p_seq "(" ")" p_e) oor (fn ([e],_) => e | (es,r) => Tuple (es,r)))
@@ -606,8 +534,10 @@ datatype tinfo = Real_ti
                | Array_ti of ty
                | Rel_ti of ty * ty
      and constraint =
-         NonFun
+         NonFunTy
        | ElemTy of int * ty
+       | BaseTy of tinfo          (* Real_ti or Int_ti *)
+
 withtype ty = tinfo URef.uref
 
 val fresh_ty : unit -> ty =
@@ -654,7 +584,8 @@ fun is_real (ty:ty) : bool =
         Real_ti => true
       | _ => false
 
-fun pair_ty(t1,t2) = tuple_ty[t1,t2]
+fun pair_ty (t1,t2) = tuple_ty[t1,t2]
+
 val real3_ty = tuple_ty[real_ty,real_ty,real_ty]
 
 val real_arr_ty = array_ty real_ty
@@ -678,8 +609,9 @@ val TEinit : ty env =
 val TEempty : ty env = nil
 
 fun eq_ty (t1,t2) : bool =
-    URef.eq (t1,t2) orelse
-    case (URef.!! t1, URef.!! t2) of
+    URef.eq (t1,t2) orelse eq_ti (URef.!! t1, URef.!! t2)
+and eq_ti (ti1,ti2) =
+    case (ti1, ti2) of
         (Real_ti, Real_ti) => true
       | (Tuple_ti ts1, Tuple_ti ts2) => eq_tys (ts1,ts2)
       | (Fun_ti (t1,t2),Fun_ti(t1',t2')) =>
@@ -731,19 +663,32 @@ and unify_all r nil = ()
 
 and chk_constraint (r:Region.reg) ti c =
     case (c,ti) of
-        (NonFun, Fun_ti _) => dieReg r "expecting non-function"
-      | (NonFun, _) => () (* maybe check recursively and add new constraints to type variables *)
-      | (ElemTy(i,ty), Tuple_ti tys) =>
-        let val ty' = List.nth(tys,i-1)
-                      handle _ =>
-                             dieReg r ("tuple projection " ^ Int.toString i ^
-                                       " out of bound: tuple contains only " ^
-                                       Int.toString (length tys) ^ " elements")
-        in unify_ty r (ty,ty')
+        (NonFunTy, Fun_ti _) => dieReg r "expecting non-function"
+      | (NonFunTy, Rel_ti _) => dieReg r "expecting non-relation"
+      | (NonFunTy, Tuple_ti ts) => app (fn t => chk_constraint r (URef.!! t) c) ts
+      | (NonFunTy, Array_ti t) => chk_constraint r (URef.!! t) c
+      | (NonFunTy, Real_ti) => ()
+      | (NonFunTy, Int_ti) => ()
+      | (NonFunTy, Tvar_ti _) => ()
+      | (BaseTy ti', Fun_ti _) => dieReg r ("expecting non-function with base type " ^ pr_ti ti')
+      | (BaseTy ti', Rel_ti _) => dieReg r ("expecting non-relation with base type " ^ pr_ti ti')
+      | (BaseTy _, Array_ti t) => chk_constraint r (URef.!! t) c
+      | (BaseTy _, Tuple_ti ts) => app (fn t => chk_constraint r (URef.!! t) c) ts
+      | (BaseTy Real_ti, Real_ti) => ()
+      | (BaseTy Int_ti, Int_ti) => ()
+      | (BaseTy ti', _) => dieReg r ("expecting structural type with base type " ^ pr_ti ti' ^
+                                     " but found type " ^ pr_ti ti)
+      | (ElemTy(i,t), Tuple_ti ts) =>
+        let val t' = List.nth(ts,i-1)
+                     handle _ =>
+                            dieReg r ("tuple projection " ^ Int.toString i ^
+                                      " out of bound: tuple contains only " ^
+                                      Int.toString (length ts) ^ " elements")
+        in unify_ty r (t,t')
         end
       | (ElemTy(i,ty), _) => dieReg r ("expecting tuple type but found " ^ pr_ti ti)
 
-fun unify_prj_ty (r:Region.reg) (i,ty,tuplety) =
+fun ty_constraint_prj (r:Region.reg) (i,ty,tuplety) : unit =
     case URef.!! tuplety of
         Tuple_ti tys =>
         let val ty' = List.nth(tys,i-1)
@@ -758,6 +703,36 @@ fun unify_prj_ty (r:Region.reg) (i,ty,tuplety) =
         in URef.::= (tuplety, Tvar_ti(tv,c::cs))
         end
       | _ => dieReg r ("failed to project from non-tuple type " ^ pr_ty tuplety)
+
+fun ty_constraint_nonfun (r:Region.reg) (t:ty) : unit =
+    case URef.!! t of
+        Tuple_ti ts => app (ty_constraint_nonfun r) ts
+      | Real_ti => ()
+      | Int_ti => ()
+      | Array_ti t => ty_constraint_nonfun r t
+      | Fun_ti _ => dieReg r "expecting nonfunction"
+      | Rel_ti _ => dieReg r "expecting nonfunction - found relation"
+      | Tvar_ti (i,cs) => URef.::= (t, Tvar_ti(i,NonFunTy :: cs))
+
+fun ty_constraint_base (r:Region.reg) (ti:tinfo) (t:ty) : unit =
+    case URef.!! t of
+        Tuple_ti ts => app (ty_constraint_base r ti) ts
+      | Array_ti t => ty_constraint_base r ti t
+      | Fun_ti _ => dieReg r ("expecting structural type with base type " ^ pr_ti ti ^
+                              " but found function type " ^ pr_ty t)
+      | Rel_ti _ => dieReg r ("expecting structural type with base type " ^ pr_ti ti ^
+                              " but found relation type " ^ pr_ty t)
+      | Tvar_ti (i,cs) => URef.::= (t, Tvar_ti(i,BaseTy ti :: cs))
+      | Real_ti =>
+        (case ti of
+             Real_ti => ()
+           | _ => dieReg r ("expecting structural type with base type real but found base type "
+                            ^ pr_ti ti))
+      | Int_ti =>
+        (case ti of
+             Int_ti => ()
+           | _ => dieReg r ("expecting structural type with base type int but found base type "
+                            ^ pr_ti ti))
 
 fun info_of_exp (e: 'i exp) : 'i =
     case e of
@@ -803,7 +778,8 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
          | Int (n,r)  => (Int (n, (r,int_ty)), int_ty)
          | Zero r =>
            let val t = fresh_ty()
-           in (Zero (r,t), t)
+           in ty_constraint_nonfun r t
+            ; (Zero (r,t), t)
            end
          | Let (x,e1,e2,r) =>
            let val (e1',ty1) = tyinf_exp TE e1
@@ -834,7 +810,7 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
          | Prj (i,e1,r) =>
            let val (e1',ty1) = tyinf_exp TE e1
                val t = fresh_ty()
-           in unify_prj_ty r (i,t,ty1)
+           in ty_constraint_prj r (i,t,ty1)
             ; (Prj(i,e1',(r,t)),t)
            end
          | Iota (n,r) =>
@@ -915,9 +891,19 @@ and tyinf_rel (TE: ty env) (rel:Region.reg rel) : (Region.reg*ty) rel * ty =
         ; (Pairs (es', (r, ty)), ty)
         end
 
-val fresh_ty_nonfun = fresh_ty (* MEMO: add constraint *)
-
 val reg0 = (Region.botloc,Region.botloc)
+
+fun fresh_ty_nonfun () =
+    let val t = fresh_ty ()
+    in ty_constraint_nonfun reg0 t
+     ; t
+    end
+
+fun fresh_ty_base (ti:tinfo) =
+    let val t = fresh_ty ()
+    in ty_constraint_base reg0 ti t
+     ; t
+    end
 
 (* Resolve non-instantiated type variables by analysing the
  * type constraints; non-constrained type variables are instantiated
@@ -928,22 +914,40 @@ val reg0 = (Region.botloc,Region.botloc)
 fun resolve_t t =
     case URef.!! t of
         Tvar_ti (_, cs) =>
-        let val m = List.foldl (fn (c,m) =>
+        let
+            val base : tinfo option =
+              List.foldl (fn (c,opt) =>
+                             case (c,opt) of
+                                 (NonFunTy, _) => opt
+                               | (BaseTy ti, NONE) => SOME ti
+                               | (BaseTy ti, SOME ti') =>
+                                 if eq_ti (ti, ti') then opt
+                                 else dieReg reg0 ("cannot resolve type constraints due to incompatible base types "
+                                                   ^ pr_ti ti ^ " and " ^ pr_ti ti')
+                               | (ElemTy(i,_), _) => opt) NONE cs
+            val (base, base_ty) =
+                case base of
+                    SOME b => (b, URef.uref b)
+                  | NONE => (Real_ti, real_ty)
+
+            val m = List.foldl (fn (c,m) =>
                                    case c of
-                                       NonFun => m
+                                       NonFunTy => m
+                                     | BaseTy _ => m
                                      | ElemTy(i,_) => Int.max(i,m)) 0 cs
             fun look j cs =
                 case cs of
                     nil => NONE
-                  | NonFun :: cs => look j cs
+                  | NonFunTy :: cs => look j cs
+                  | BaseTy _ :: cs => look j cs
                   | ElemTy(i,t) :: cs => if j = i then SOME t
                                          else look j cs
-        in if m = 0 then URef.::=(t, Real_ti)
+        in if m = 0 then URef.::=(t, base)
            else
              let val m = Int.max(2,m) (* at least two elements *)
                  val ts = List.tabulate(m, fn i => case look (i+1) cs of
                                                        SOME t => t
-                                                     | NONE => real_ty)
+                                                     | NONE => base_ty)
              in unify_ty reg0 (tuple_ty ts, t)
               ; app resolve_t ts
              end

@@ -1,0 +1,5 @@
+Typed program:
+ f : (real -> real)
+ f(x) = 3.0*x+sin(2.0*x)
+Internal expression program:
+ f(x) = ((3.0*x)+sin((2.0*x)))

@@ -113,6 +113,7 @@ fun compile (prg, exp_opt) =
       fun ce e =
           case e of
               Ast.Real(f,_) => E.DSL.const (V.R f)
+            | Ast.Zero _ => E.DSL.const (V.R 0.0)
             | Ast.Let(v,e1,e2,_) => E.DSL.lett(v,ce e1, ce e2)
             | Ast.Add(e1,e2,_) => E.DSL.+(ce e1, ce e2)
             | Ast.Sub(e1,e2,_) => E.DSL.-(ce e1, ce e2)

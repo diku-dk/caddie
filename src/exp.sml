@@ -37,7 +37,7 @@ fun pp e =
       | Tuple es => "(" ^ String.concatWith "," (map pp es) ^ ")"
       | Prj(2,1,e) => "#1(" ^ pp e ^ ")"
       | Prj(2,2,e) => "#2(" ^ pp e ^ ")"
-      | Prj(n,i,e) => "#^" ^ Int.toString n ^ " " ^ Int.toString i ^ "(" ^ pp e ^ ")"
+      | Prj(n,i,e) => "#" ^ Int.toString i ^ "{of " ^ Int.toString n ^ "}(" ^ pp e ^ ")"
       | If(e,e1,e2) => "(if " ^ pp e ^ " then " ^ pp e1 ^ " else " ^ pp e2 ^ ")"
       | Let(x,e1,e2) => "let " ^ x ^ " = " ^ pp e1 ^ " in " ^ pp e2 ^ " end"
       | Apply (f,e) => "(" ^ f ^ "(" ^ pp e ^ "))"

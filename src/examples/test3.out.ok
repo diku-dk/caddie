@@ -1,0 +1,11 @@
+Typed program:
+ f : ([]real -> []real)
+ f(xs) = map (fn x => x*x) (xs)
+ g : ([][]real -> [][]real)
+ g(xss) = map (fn xs => map (fn x => x*x) (xs)) (xss)
+ h : ([]real -> []real)
+ h(xs) = map (fn x => let y = x*x in let z = y*y in z+z end end) (xs)
+Internal expression program:
+ f(xs) = (map (fn x => (x*x)) xs)
+ g(xss) = (map (fn xs => (map (fn x => (x*x)) xs)) xss)
+ h(xs) = (map (fn x => let y = (x*x) in let z = (y*y) in (z+z) end end) xs)

@@ -1,3 +1,3 @@
-fun f x = (2 * #2 x, 3 - #1 x + #3 x)
+fun f x = (2.0 * #2 x, 3.0 - #1 x + #3 x)
 
-fun g y = (#1 f(ln y,3,2), f(2,sin(pi*y),4))
+fun g y = (#1 f(ln y,3.0,2.0), f(2.0,sin(pi*y),4.0))

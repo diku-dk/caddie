@@ -12,6 +12,7 @@ cad: lib
 .PHONY: test
 test: lib
 	$(MAKE) -C tests all
+	$(MAKE) -C examples test
 
 .PHONY: clean
 clean:
