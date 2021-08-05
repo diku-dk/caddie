@@ -8,9 +8,9 @@ Trying example: norm
   f x =
     pow(0.5)((x dot x))
   f' x =
-    ((0.5 * pow(~0.5)((x dot x))) *) :o: (+) :o: ((dot x) :+: (x dot)) :o: dup
+    ((0.5 * pow(-0.5)((x dot x))) *) :o: (+) :o: ((dot x) :+: (x dot)) :o: dup
   f' x dx1 =
-    ((0.5 * pow(~0.5)((x dot x))) * ((dx1 dot x) + (x dot dx1)))
+    ((0.5 * pow(-0.5)((x dot x))) * ((dx1 dot x) + (x dot dx1)))
 
 
 Trying example: norm
@@ -25,35 +25,35 @@ Trying example: norm
 
 
 Trying example: nrm
-  nrm = (((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup)
+  nrm = (((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup)
   Differentiating:
   f x =
-    let v1 = pow(~1.0)(pow(0.5)((x dot x)))
+    let v1 = pow(-1)(pow(0.5)((x dot x)))
     in (v1 . x)
   f' x =
-    let v1 = pow(~1.0)(pow(0.5)((x dot x)))
-    in (+) :o: ((. x) :+: (v1 .)) :o: (((-1 * pow(~2.0)(pow(0.5)((x dot x)))) *) :o: ((0.5 * pow(~0.5)((x dot x))) *) :o: (+) :o: ((dot x) :+: (x dot)) :o: dup :+: id) :o: dup
+    let v1 = pow(-1)(pow(0.5)((x dot x)))
+    in (+) :o: ((. x) :+: (v1 .)) :o: (((-1 * pow(-2)(pow(0.5)((x dot x)))) *) :o: ((0.5 * pow(-0.5)((x dot x))) *) :o: (+) :o: ((dot x) :+: (x dot)) :o: dup :+: id) :o: dup
   f' x dx1 =
-    let v1 = pow(~1.0)(pow(0.5)((x dot x)))
-    in ((((-1 * pow(~2.0)(pow(0.5)((x dot x)))) * ((0.5 * pow(~0.5)((x dot x))) * ((dx1 dot x) + (x dot dx1)))) . x) + (v1 . dx1))
+    let v1 = pow(-1)(pow(0.5)((x dot x)))
+    in ((((-1 * pow(-2)(pow(0.5)((x dot x)))) * ((0.5 * pow(-0.5)((x dot x))) * ((dx1 dot x) + (x dot dx1)))) . x) + (v1 . dx1))
 
 
 Trying example: nrm
-  nrm = (((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup)
+  nrm = (((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup)
   Differentiating:
   f (x1,x2,x3) =
-    let v2 = pow(~1.0)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))
+    let v2 = pow(-1)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))
     in (v2 . (x1,x2,x3))
   f' (x1,x2,x3) =
-    let v2 = pow(~1.0)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))
-    in (+) :o: ((. (x1,x2,x3)) :+: (v2 .)) :o: (((-1 * pow(~2.0)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))) *) :o: ((0.5 * pow(~0.5)(((x1,x2,x3) dot (x1,x2,x3)))) *) :o: (+) :o: ((dot (x1,x2,x3)) :+: ((x1,x2,x3) dot)) :o: dup :+: id) :o: dup
+    let v2 = pow(-1)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))
+    in (+) :o: ((. (x1,x2,x3)) :+: (v2 .)) :o: (((-1 * pow(-2)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))) *) :o: ((0.5 * pow(-0.5)(((x1,x2,x3) dot (x1,x2,x3)))) *) :o: (+) :o: ((dot (x1,x2,x3)) :+: ((x1,x2,x3) dot)) :o: dup :+: id) :o: dup
   f' (x1,x2,x3) (dx1,dx2,dx3) =
-    let v2 = pow(~1.0)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))
-    in ((((-1 * pow(~2.0)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))) * ((0.5 * pow(~0.5)(((x1,x2,x3) dot (x1,x2,x3)))) * (((dx1,dx2,dx3) dot (x1,x2,x3)) + ((x1,x2,x3) dot (dx1,dx2,dx3))))) . (x1,x2,x3)) + (v2 . (dx1,dx2,dx3)))
+    let v2 = pow(-1)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))
+    in ((((-1 * pow(-2)(pow(0.5)(((x1,x2,x3) dot (x1,x2,x3))))) * ((0.5 * pow(-0.5)(((x1,x2,x3) dot (x1,x2,x3)))) * (((dx1,dx2,dx3) dot (x1,x2,x3)) + ((x1,x2,x3) dot (dx1,dx2,dx3))))) . (x1,x2,x3)) + (v2 . (dx1,dx2,dx3)))
 
 
 Trying example: nrm
-  nrm = (((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup)
+  nrm = (((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup)
   Differentiating:
   f (2,3,5) =
     (0.324442842262,0.486664263392,0.811107105654)
@@ -64,16 +64,16 @@ Trying example: nrm
 
 
 Trying example: rodriguez
-  rodriguez = (((+) o ((((+) o ((((.) o (((cos o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x pi_2/2)) o dup) x (((.) o (((sin o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x (((x) o (((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x pi_2/2)) o dup))) o dup))) o dup) x (((.) o ((((+) o (1 x (((~ o cos) o ((pow(0.5) o (dot)) o dup)) o pi_1/2))) o dup) x (((.) o ((((dot) o (((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x ((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2))) o dup) x pi_2/2)) o dup))) o dup))) o dup)
+  rodriguez = (((+) o ((((+) o ((((.) o (((cos o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x pi_2/2)) o dup) x (((.) o (((sin o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x (((x) o (((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x pi_2/2)) o dup))) o dup))) o dup) x (((.) o ((((+) o (1 x (((~ o cos) o ((pow(0.5) o (dot)) o dup)) o pi_1/2))) o dup) x (((.) o ((((dot) o (((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x ((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2))) o dup) x pi_2/2)) o dup))) o dup))) o dup)
   Differentiating:
   f (r,X) =
     let v3 = cos(pow(0.5)((r dot r)))
-    let v4 = pow(~1.0)(pow(0.5)((r dot r)))
+    let v4 = pow(-1)(pow(0.5)((r dot r)))
     let v5 = (v4 . r)
     let v6 = sin(pow(0.5)((r dot r)))
     let v7 = (v5 x X)
-    let v8 = pow(~1.0)(pow(0.5)((r dot r)))
-    let v9 = pow(~1.0)(pow(0.5)((r dot r)))
+    let v8 = pow(-1)(pow(0.5)((r dot r)))
+    let v9 = pow(-1)(pow(0.5)((r dot r)))
     let v10 = (v8 . r)
     let v11 = (v9 . r)
     let v12 = (v10 dot v11)
@@ -82,32 +82,32 @@ Trying example: rodriguez
     in (((v3 . X) + (v6 . v7)) + (v13 . v14))
   f' (r,X) =
     let v3 = cos(pow(0.5)((r dot r)))
-    let v4 = pow(~1.0)(pow(0.5)((r dot r)))
+    let v4 = pow(-1)(pow(0.5)((r dot r)))
     let v5 = (v4 . r)
     let v6 = sin(pow(0.5)((r dot r)))
     let v7 = (v5 x X)
-    let v8 = pow(~1.0)(pow(0.5)((r dot r)))
-    let v9 = pow(~1.0)(pow(0.5)((r dot r)))
+    let v8 = pow(-1)(pow(0.5)((r dot r)))
+    let v9 = pow(-1)(pow(0.5)((r dot r)))
     let v10 = (v8 . r)
     let v11 = (v9 . r)
     let v12 = (v10 dot v11)
     let v13 = (1 + ~(cos(pow(0.5)((r dot r)))))
     let v14 = (v12 . X)
-    in (+) :o: ((+) :o: ((+) :o: ((. X) :+: (v3 .)) :o: ((~(sin(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(~0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :o: pi_1/2 :+: pi_2/2) :o: dup :+: (+) :o: ((. v7) :+: (v6 .)) :o: ((cos(pow(0.5)((r dot r))) *) :o: ((0.5 * pow(~0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :o: pi_1/2 :+: (+) :o: ((x X) :+: (v5 x)) :o: ((+) :o: ((. r) :+: (v4 .)) :o: (((-1 * pow(~2.0)(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(~0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :+: id) :o: dup :o: pi_1/2 :+: pi_2/2) :o: dup) :o: dup) :o: dup :+: (+) :o: ((. v14) :+: (v13 .)) :o: ((+) :o: (zero :+: neg :o: (~(sin(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(~0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :o: pi_1/2) :o: dup :+: (+) :o: ((. X) :+: (v12 .)) :o: ((+) :o: ((dot v11) :+: (v10 dot)) :o: ((+) :o: ((. r) :+: (v8 .)) :o: (((-1 * pow(~2.0)(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(~0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :+: id) :o: dup :o: pi_1/2 :+: (+) :o: ((. r) :+: (v9 .)) :o: (((-1 * pow(~2.0)(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(~0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :+: id) :o: dup :o: pi_1/2) :o: dup :+: pi_2/2) :o: dup) :o: dup) :o: dup
+    in (+) :o: ((+) :o: ((+) :o: ((. X) :+: (v3 .)) :o: ((~(sin(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(-0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :o: pi_1/2 :+: pi_2/2) :o: dup :+: (+) :o: ((. v7) :+: (v6 .)) :o: ((cos(pow(0.5)((r dot r))) *) :o: ((0.5 * pow(-0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :o: pi_1/2 :+: (+) :o: ((x X) :+: (v5 x)) :o: ((+) :o: ((. r) :+: (v4 .)) :o: (((-1 * pow(-2)(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(-0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :+: id) :o: dup :o: pi_1/2 :+: pi_2/2) :o: dup) :o: dup) :o: dup :+: (+) :o: ((. v14) :+: (v13 .)) :o: ((+) :o: (zero :+: neg :o: (~(sin(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(-0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :o: pi_1/2) :o: dup :+: (+) :o: ((. X) :+: (v12 .)) :o: ((+) :o: ((dot v11) :+: (v10 dot)) :o: ((+) :o: ((. r) :+: (v8 .)) :o: (((-1 * pow(-2)(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(-0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :+: id) :o: dup :o: pi_1/2 :+: (+) :o: ((. r) :+: (v9 .)) :o: (((-1 * pow(-2)(pow(0.5)((r dot r)))) *) :o: ((0.5 * pow(-0.5)((r dot r))) *) :o: (+) :o: ((dot r) :+: (r dot)) :o: dup :+: id) :o: dup :o: pi_1/2) :o: dup :+: pi_2/2) :o: dup) :o: dup) :o: dup
   f' (r,X) (dr,dX) =
     let v3 = cos(pow(0.5)((r dot r)))
-    let v4 = pow(~1.0)(pow(0.5)((r dot r)))
+    let v4 = pow(-1)(pow(0.5)((r dot r)))
     let v5 = (v4 . r)
     let v6 = sin(pow(0.5)((r dot r)))
     let v7 = (v5 x X)
     let v12 = (v5 dot v5)
     let v13 = (1 + ~(cos(pow(0.5)((r dot r)))))
     let v14 = (v12 . X)
-    in (((((~(sin(pow(0.5)((r dot r)))) * ((0.5 * pow(~0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . X) + (v3 . dX)) + (((cos(pow(0.5)((r dot r))) * ((0.5 * pow(~0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . v7) + (v6 . ((((((-1 * pow(~2.0)(pow(0.5)((r dot r)))) * ((0.5 * pow(~0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . r) + (v4 . dr)) x X) + (v5 x dX))))) + ((~((~(sin(pow(0.5)((r dot r)))) * ((0.5 * pow(~0.5)((r dot r))) * ((dr dot r) + (r dot dr))))) . v14) + (v13 . ((((((((-1 * pow(~2.0)(pow(0.5)((r dot r)))) * ((0.5 * pow(~0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . r) + (v4 . dr)) dot v5) + (v5 dot ((((-1 * pow(~2.0)(pow(0.5)((r dot r)))) * ((0.5 * pow(~0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . r) + (v4 . dr)))) . X) + (v12 . dX)))))
+    in (((((~(sin(pow(0.5)((r dot r)))) * ((0.5 * pow(-0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . X) + (v3 . dX)) + (((cos(pow(0.5)((r dot r))) * ((0.5 * pow(-0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . v7) + (v6 . ((((((-1 * pow(-2)(pow(0.5)((r dot r)))) * ((0.5 * pow(-0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . r) + (v4 . dr)) x X) + (v5 x dX))))) + ((~((~(sin(pow(0.5)((r dot r)))) * ((0.5 * pow(-0.5)((r dot r))) * ((dr dot r) + (r dot dr))))) . v14) + (v13 . ((((((((-1 * pow(-2)(pow(0.5)((r dot r)))) * ((0.5 * pow(-0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . r) + (v4 . dr)) dot v5) + (v5 dot ((((-1 * pow(-2)(pow(0.5)((r dot r)))) * ((0.5 * pow(-0.5)((r dot r))) * ((dr dot r) + (r dot dr)))) . r) + (v4 . dr)))) . X) + (v12 . dX)))))
 
 
 Trying example: rodriguez
-  rodriguez = (((+) o ((((+) o ((((.) o (((cos o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x pi_2/2)) o dup) x (((.) o (((sin o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x (((x) o (((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x pi_2/2)) o dup))) o dup))) o dup) x (((.) o ((((+) o (1 x (((~ o cos) o ((pow(0.5) o (dot)) o dup)) o pi_1/2))) o dup) x (((.) o ((((dot) o (((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x ((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2))) o dup) x pi_2/2)) o dup))) o dup))) o dup)
+  rodriguez = (((+) o ((((+) o ((((.) o (((cos o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x pi_2/2)) o dup) x (((.) o (((sin o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x (((x) o (((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x pi_2/2)) o dup))) o dup))) o dup) x (((.) o ((((+) o (1 x (((~ o cos) o ((pow(0.5) o (dot)) o dup)) o pi_1/2))) o dup) x (((.) o ((((dot) o (((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x ((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2))) o dup) x pi_2/2)) o dup))) o dup))) o dup)
   Differentiating:
   f ((1,2.6,3),(10,20.6,30)) =
     (6.77592861229,20.6,31.0746904626)
@@ -118,7 +118,7 @@ Trying example: rodriguez
 
 
 Trying example: p2e
-  p2e = (((.) o ((pow(~1.0) o pi_3/3) x ((pi_1/3 x pi_2/3) o dup))) o dup)
+  p2e = (((.) o ((pow(-1) o pi_3/3) x ((pi_1/3 x pi_2/3) o dup))) o dup)
   Differentiating:
   f (6,12,3) =
     (2,4)
@@ -129,7 +129,7 @@ Trying example: p2e
 
 
 Trying example: distort
-  distort = (((.) o ((((+) o ((((.) o ((((+) o (1 x ((norm2sq) o pi_2/2))) o dup) x (pi_1/2 o pi_1/2))) o dup) x (((.) o (((pow(2.0) o (norm2sq)) o pi_2/2) x (pi_2/2 o pi_1/2))) o dup))) o dup) x pi_1/2)) o dup)
+  distort = (((.) o ((((+) o ((((.) o ((((+) o (1 x ((norm2sq) o pi_2/2))) o dup) x (pi_1/2 o pi_1/2))) o dup) x (((.) o (((pow(2) o (norm2sq)) o pi_2/2) x (pi_2/2 o pi_1/2))) o dup))) o dup) x pi_1/2)) o dup)
   Differentiating:
   f ((2,3),(8,9)) =
     (126734,190101)
@@ -140,7 +140,7 @@ Trying example: distort
 
 
 Trying example: project
-  project = (((+) o ((((.) o (pi_3/6 x ((((.) o ((((+) o ((((.) o ((((+) o (1 x ((norm2sq) o pi_2/2))) o dup) x (pi_1/2 o pi_1/2))) o dup) x (((.) o (((pow(2.0) o (norm2sq)) o pi_2/2) x (pi_2/2 o pi_1/2))) o dup))) o dup) x pi_1/2)) o dup) o ((pi_5/6 x (((((.) o ((pow(~1.0) o pi_3/3) x ((pi_1/3 x pi_2/3) o dup))) o dup) o (((+) o ((((+) o ((((.) o (((cos o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x pi_2/2)) o dup) x (((.) o (((sin o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x (((x) o (((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x pi_2/2)) o dup))) o dup))) o dup) x (((.) o ((((+) o (1 x (((~ o cos) o ((pow(0.5) o (dot)) o dup)) o pi_1/2))) o dup) x (((.) o ((((dot) o (((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x ((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2))) o dup) x pi_2/2)) o dup))) o dup))) o dup)) o ((pi_1/6 x (((+) o (pi_6/6 x (~ o pi_2/6))) o dup)) o dup))) o dup)))) o dup) x pi_4/6)) o dup)
+  project = (((+) o ((((.) o (pi_3/6 x ((((.) o ((((+) o ((((.) o ((((+) o (1 x ((norm2sq) o pi_2/2))) o dup) x (pi_1/2 o pi_1/2))) o dup) x (((.) o (((pow(2) o (norm2sq)) o pi_2/2) x (pi_2/2 o pi_1/2))) o dup))) o dup) x pi_1/2)) o dup) o ((pi_5/6 x (((((.) o ((pow(-1) o pi_3/3) x ((pi_1/3 x pi_2/3) o dup))) o dup) o (((+) o ((((+) o ((((.) o (((cos o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x pi_2/2)) o dup) x (((.) o (((sin o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x (((x) o (((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x pi_2/2)) o dup))) o dup))) o dup) x (((.) o ((((+) o (1 x (((~ o cos) o ((pow(0.5) o (dot)) o dup)) o pi_1/2))) o dup) x (((.) o ((((dot) o (((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x ((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2))) o dup) x pi_2/2)) o dup))) o dup))) o dup)) o ((pi_1/6 x (((+) o (pi_6/6 x (~ o pi_2/6))) o dup)) o dup))) o dup)))) o dup) x pi_4/6)) o dup)
   Differentiating:
   f ((2,3,8),(1,2,6),3,(1,2),(2,3),(6,9,2)) =
     (833.308119989,1250.46217998)
@@ -151,7 +151,7 @@ Trying example: project
 
 
 Trying example: residual
-  residual = (((((.) o (pi_1/3 x (((+) o (pi_2/3 x ((~ o (((+) o ((((.) o (pi_3/6 x ((((.) o ((((+) o ((((.) o ((((+) o (1 x ((norm2sq) o pi_2/2))) o dup) x (pi_1/2 o pi_1/2))) o dup) x (((.) o (((pow(2.0) o (norm2sq)) o pi_2/2) x (pi_2/2 o pi_1/2))) o dup))) o dup) x pi_1/2)) o dup) o ((pi_5/6 x (((((.) o ((pow(~1.0) o pi_3/3) x ((pi_1/3 x pi_2/3) o dup))) o dup) o (((+) o ((((+) o ((((.) o (((cos o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x pi_2/2)) o dup) x (((.) o (((sin o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x (((x) o (((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x pi_2/2)) o dup))) o dup))) o dup) x (((.) o ((((+) o (1 x (((~ o cos) o ((pow(0.5) o (dot)) o dup)) o pi_1/2))) o dup) x (((.) o ((((dot) o (((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x ((((.) o ((pow(~1.0) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2))) o dup) x pi_2/2)) o dup))) o dup))) o dup)) o ((pi_1/6 x (((+) o (pi_6/6 x (~ o pi_2/6))) o dup)) o dup))) o dup)))) o dup) x pi_4/6)) o dup)) o pi_3/3))) o dup))) o dup) x (((+) o (1 x ((~ o pow(2.0)) o pi_1/3))) o dup)) o dup)
+  residual = (((((.) o (pi_1/3 x (((+) o (pi_2/3 x ((~ o (((+) o ((((.) o (pi_3/6 x ((((.) o ((((+) o ((((.) o ((((+) o (1 x ((norm2sq) o pi_2/2))) o dup) x (pi_1/2 o pi_1/2))) o dup) x (((.) o (((pow(2) o (norm2sq)) o pi_2/2) x (pi_2/2 o pi_1/2))) o dup))) o dup) x pi_1/2)) o dup) o ((pi_5/6 x (((((.) o ((pow(-1) o pi_3/3) x ((pi_1/3 x pi_2/3) o dup))) o dup) o (((+) o ((((+) o ((((.) o (((cos o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x pi_2/2)) o dup) x (((.) o (((sin o ((pow(0.5) o (dot)) o dup)) o pi_1/2) x (((x) o (((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x pi_2/2)) o dup))) o dup))) o dup) x (((.) o ((((+) o (1 x (((~ o cos) o ((pow(0.5) o (dot)) o dup)) o pi_1/2))) o dup) x (((.) o ((((dot) o (((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2) x ((((.) o ((pow(-1) o ((pow(0.5) o (dot)) o dup)) x id)) o dup) o pi_1/2))) o dup) x pi_2/2)) o dup))) o dup))) o dup)) o ((pi_1/6 x (((+) o (pi_6/6 x (~ o pi_2/6))) o dup)) o dup))) o dup)))) o dup) x pi_4/6)) o dup)) o pi_3/3))) o dup))) o dup) x (((+) o (1 x ((~ o pow(2)) o pi_1/3))) o dup)) o dup)
   Differentiating:
   f (1.2,(1,2),((2,3,8),(1,2,6),3,(1,2),(2,3),(6,9,2))) =
     ((-998.769743986,-1498.15461598),-0.44)

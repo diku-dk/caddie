@@ -9,11 +9,11 @@ Trying example: ex1
   f x1 =
     ln(sin(x1))
   f' x1 =
-    (pow(~1.0)(sin(x1)) *) :o: (cos(x1) *)
+    (pow(-1)(sin(x1)) *) :o: (cos(x1) *)
   f^ x1 =
-    (cos(x1) *) :o: (pow(~1.0)(sin(x1)) *)
+    (cos(x1) *) :o: (pow(-1)(sin(x1)) *)
   f^ x1 1 =
-    (cos(x1) * pow(~1.0)(sin(x1)))
+    (cos(x1) * pow(-1)(sin(x1)))
 
 Trying example: ex2
   e = (x1*x2)
@@ -37,11 +37,11 @@ Trying example: ex3
   f (x1,x2) =
     ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
   f' (x1,x2) =
-    (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
+    (+) :o: ((+) :o: ((pow(-1)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
   f^ (x1,x2) =
-    (+) :o: ((+) :o: ((id :+: zero) :o: dup :o: (pow(~1.0)(x1) *) :+: ((* x2) :+: (x1 *)) :o: dup) :o: dup :+: (zero :+: id) :o: dup :o: (cos(x2) *) :o: neg) :o: dup
+    (+) :o: ((+) :o: ((id :+: zero) :o: dup :o: (pow(-1)(x1) *) :+: ((* x2) :+: (x1 *)) :o: dup) :o: dup :+: (zero :+: id) :o: dup :o: (cos(x2) *) :o: neg) :o: dup
   f^ (x1,x2) 1 =
-    let v1 = pow(~1.0)(x1)
+    let v1 = pow(-1)(x1)
     let v2 = (cos(x2) * -1)
     in ((v1 + x2),(x1 + v2))
 
@@ -57,15 +57,15 @@ Trying example: ex4
   f' (x1,x2) =
     let v3 = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
     let v4 = (x1 + x2)
-    in (+) :o: ((* v4) :+: (v3 *)) :o: ((+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup :+: (+)) :o: dup
+    in (+) :o: ((* v4) :+: (v3 *)) :o: ((+) :o: ((+) :o: ((pow(-1)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup :+: (+)) :o: dup
   f^ (x1,x2) =
     let v3 = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
     let v4 = (x1 + x2)
-    in (+) :o: ((+) :o: ((+) :o: ((id :+: zero) :o: dup :o: (pow(~1.0)(x1) *) :+: ((* x2) :+: (x1 *)) :o: dup) :o: dup :+: (zero :+: id) :o: dup :o: (cos(x2) *) :o: neg) :o: dup :+: dup) :o: ((* v4) :+: (v3 *)) :o: dup
+    in (+) :o: ((+) :o: ((+) :o: ((id :+: zero) :o: dup :o: (pow(-1)(x1) *) :+: ((* x2) :+: (x1 *)) :o: dup) :o: dup :+: (zero :+: id) :o: dup :o: (cos(x2) *) :o: neg) :o: dup :+: dup) :o: ((* v4) :+: (v3 *)) :o: dup
   f^ (x1,x2) 1 =
     let v3 = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
     let v4 = (x1 + x2)
-    let v6 = (pow(~1.0)(x1) * v4)
+    let v6 = (pow(-1)(x1) * v4)
     let v7 = (cos(x2) * ~(v4))
     in (((v6 + (v4 * x2)) + v3),(((x1 * v4) + v7) + v3))
 
@@ -79,13 +79,13 @@ Trying example: ex5
     in ln((x1 * v9))
   f' (x1,x2) =
     let v9 = cos(x2)
-    in (pow(~1.0)((x1 * v9)) *) :o: (+) :o: ((* v9) :+: (x1 *)) :o: (pi_1/2 :+: (~(sin(x2)) *) :o: pi_2/2) :o: dup
+    in (pow(-1)((x1 * v9)) *) :o: (+) :o: ((* v9) :+: (x1 *)) :o: (pi_1/2 :+: (~(sin(x2)) *) :o: pi_2/2) :o: dup
   f^ (x1,x2) =
     let v9 = cos(x2)
-    in (+) :o: ((id :+: zero) :o: dup :+: (zero :+: id) :o: dup :o: (~(sin(x2)) *)) :o: ((* v9) :+: (x1 *)) :o: dup :o: (pow(~1.0)((x1 * v9)) *)
+    in (+) :o: ((id :+: zero) :o: dup :+: (zero :+: id) :o: dup :o: (~(sin(x2)) *)) :o: ((* v9) :+: (x1 *)) :o: dup :o: (pow(-1)((x1 * v9)) *)
   f^ (x1,x2) 1 =
     let v9 = cos(x2)
-    let v10 = pow(~1.0)((x1 * v9))
+    let v10 = pow(-1)((x1 * v9))
     let v11 = (v10 * v9)
     let v12 = (~(sin(x2)) * (x1 * v10))
     in (v11,v12)

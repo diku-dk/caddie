@@ -2,6 +2,16 @@ fun die s = (print ("Error (Prim): " ^ s ^ "\n"); raise Fail s)
 
 structure Prim :> PRIM = struct
   datatype uprim = Sin | Cos | Ln | Exp | Pow of real | Neg
+
+  fun real_to_string r =
+      let val s = CharVector.map (fn #"~" => #"-" | c => c) (Real.toString r)
+      in if size s >= 2
+            andalso String.sub(s,size s - 1) = #"0"
+            andalso String.sub(s,size s - 2) = #"."
+         then String.extract (s,0,SOME(size s - 2))
+         else s
+      end
+
   fun pp_uprim (p: uprim) : string =
       case p of
           Sin => "sin"
@@ -9,7 +19,7 @@ structure Prim :> PRIM = struct
         | Ln => "ln"
         | Exp => "exp"
         | Neg => "~"
-        | Pow r => "pow(" ^ Real.toString r ^ ")"
+        | Pow r => "pow(" ^ real_to_string r ^ ")"
   datatype bilin = Mul     (* : R x R -> R             multiplication *)
                  | Cprod3  (* : R3 x R3 -2> R3         cross product *)
                  | Dprod   (* : RN x RN -2> R          dot product *)

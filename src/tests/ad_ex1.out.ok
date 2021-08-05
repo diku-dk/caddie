@@ -6,9 +6,9 @@ Trying example: t1
   f_unopt = (ln o (sin o pi_1/1))
   f = (ln o sin)
   f (x1) = (ln(sin(x1)))
-  f' (x1) = ((pow(~1.0)(sin(x1))) *) :o: ((cos(x1)) *)
+  f' (x1) = ((pow(-1)(sin(x1))) *) :o: ((cos(x1)) *)
   f' (x1) (1) =
-    ((pow(~1.0)(sin(x1)) * cos(x1)))
+    ((pow(-1)(sin(x1)) * cos(x1)))
 Trying example: t2
   e = (x1*x2)
   f_unopt = ((*) o ((pi_1/2 x pi_2/2) o dup))
@@ -22,15 +22,15 @@ Trying example: t3_1
   f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
   f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
   f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
-  f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
+  f' (x1,x2) = (+) :o: ((+) :o: ((pow(-1)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
   f' (x1,x2) (1,0) =
-    (pow(~1.0)(x1) + x2)
+    (pow(-1)(x1) + x2)
 Trying example: t3_2
   e = ((ln(x1)+(x1*x2))+~(sin(x2)))
   f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
   f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
   f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
-  f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
+  f' (x1,x2) = (+) :o: ((+) :o: ((pow(-1)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
   f' (x1,x2) (0,1) =
     (x1 + ~(cos(x2)))
 Trying example: t4
@@ -38,17 +38,17 @@ Trying example: t4
   f_unopt = ((+) o ((((+) o (((ln o pi_1/2) x ((*) o ((pi_1/2 x pi_2/2) o dup))) o dup)) x (~ o (sin o pi_2/2))) o dup))
   f = ((+) o ((((+) o (((ln o pi_1/2) x (*)) o dup)) x (~ o (sin o pi_2/2))) o dup))
   f (x1,x2) = ((ln(x1) + (x1 * x2)) + ~(sin(x2)))
-  f' (x1,x2) = (+) :o: ((+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
+  f' (x1,x2) = (+) :o: ((+) :o: ((pow(-1)(x1) *) :o: pi_1/2 :+: (+) :o: ((* x2) :+: (x1 *))) :o: dup :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup
   f' (x1,x2) (dx1,dx2) =
-    (((pow(~1.0)(x1) * dx1) + ((dx1 * x2) + (x1 * dx2))) + ~((cos(x2) * dx2)))
+    (((pow(-1)(x1) * dx1) + ((dx1 * x2) + (x1 * dx2))) + ~((cos(x2) * dx2)))
 Trying example: t4'
   e = (ln(x1)+((x1*x2)+~(sin(x2))))
   f_unopt = ((+) o (((ln o pi_1/2) x ((+) o ((((*) o ((pi_1/2 x pi_2/2) o dup)) x (~ o (sin o pi_2/2))) o dup))) o dup))
   f = ((+) o (((ln o pi_1/2) x ((+) o (((*) x (~ o (sin o pi_2/2))) o dup))) o dup))
   f (x1,x2) = (ln(x1) + ((x1 * x2) + ~(sin(x2))))
-  f' (x1,x2) = (+) :o: ((pow(~1.0)(x1) *) :o: pi_1/2 :+: (+) :o: ((+) :o: ((* x2) :+: (x1 *)) :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup) :o: dup
+  f' (x1,x2) = (+) :o: ((pow(-1)(x1) *) :o: pi_1/2 :+: (+) :o: ((+) :o: ((* x2) :+: (x1 *)) :+: neg :o: (cos(x2) *) :o: pi_2/2) :o: dup) :o: dup
   f' (x1,x2) (dx1,dx2) =
-    ((pow(~1.0)(x1) * dx1) + (((dx1 * x2) + (x1 * dx2)) + ~((cos(x2) * dx2))))
+    ((pow(-1)(x1) * dx1) + (((dx1 * x2) + (x1 * dx2)) + ~((cos(x2) * dx2))))
 Trying example: t5
   e = ~(sin(x1))
   f_unopt = (~ o (sin o pi_1/1))
@@ -60,19 +60,19 @@ Trying example: t5
 Trying example: fun1
   fun1 = ((((id x ln) o dup) o (+)) o (cos x sin))
   fun1 (x1,x2) = ((cos(x1) + sin(x2)),ln((cos(x1) + sin(x2))))
-  fun1' (x1,x2) = (id :+: (pow(~1.0)((cos(x1) + sin(x2))) *)) :o: dup :o: (+) :o: ((~(sin(x1)) *) :+: (cos(x2) *))
+  fun1' (x1,x2) = (id :+: (pow(-1)((cos(x1) + sin(x2))) *)) :o: dup :o: (+) :o: ((~(sin(x1)) *) :+: (cos(x2) *))
 Now evaluating
 Now simplifying
   fun1' (x1,x2) (2,2) =
     let v1 = ((~(sin(x1)) * 2) + (cos(x2) * 2))
-    in (v1,(pow(~1.0)((cos(x1) + sin(x2))) * v1))
+    in (v1,(pow(-1)((cos(x1) + sin(x2))) * v1))
 
 Trying example: fun2
   fun2 = ln
   fun2 (x1) = (ln(x1))
-  fun2' (x1) = ((pow(~1.0)(x1)) *)
+  fun2' (x1) = ((pow(-1)(x1)) *)
 Now evaluating
 Now simplifying
   fun2' (x1) (2) =
-    ((pow(~1.0)(x1) * 2))
+    ((pow(-1)(x1) * 2))
 
