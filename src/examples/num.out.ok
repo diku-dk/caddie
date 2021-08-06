@@ -1,0 +1,5 @@
+Typed program:
+ f : (real -> real)
+ f(x) = (x+2)+3.1
+Internal expression program:
+ f(x) = ((x+2)+3.1)
