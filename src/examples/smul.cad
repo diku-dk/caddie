@@ -1,0 +1,4 @@
+
+fun f x = 4 *> (2.3, x, x)
+
+fun g x = f 2

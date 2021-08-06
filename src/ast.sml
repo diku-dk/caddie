@@ -87,6 +87,7 @@ datatype 'i exp = Real of real * 'i
                 | Add of 'i exp * 'i exp * 'i
                 | Sub of 'i exp * 'i exp * 'i
                 | Mul of 'i exp * 'i exp * 'i
+                | Smul of 'i exp * 'i exp * 'i
                 | Var of string * 'i
                 | App of string * 'i exp * 'i
                 | Tuple of 'i exp list * 'i
@@ -121,6 +122,7 @@ fun pr_exp (e: 'i exp) : string =
               | Add (e1,e2,_) => par p 6 (pr 6 e1 ^ "+" ^ pr 6 e2)
               | Sub (e1,e2,_) => par p 6 (pr 6 e1 ^ "-" ^ pr 6 e2)
               | Mul (e1,e2,_) => par p 7 (pr 7 e1 ^ "*" ^ pr 7 e2)
+              | Smul (e1,e2,_) => par p 7 (pr 7 e1 ^ "*>" ^ pr 7 e2)
               | Var (x,_) => if p = 9 then " " ^ x else x
               | App (f,e,_) => par p 8 (f ^ pr 9 e)
               | Tuple (es,_) => "(" ^ String.concatWith "," (map (pr 0) es) ^ ")"
@@ -261,6 +263,7 @@ fun plus (E1, E2) = E2 @ E1
 fun liftNeg i v : v =
     case v of
         Real_v r => Real_v(~r)
+      | Int_v i => Int_v(~i)
       | Tuple_v vs => Tuple_v (List.map (liftNeg i) vs)
       | Array_v vs => Array_v (List.map (liftNeg i) vs)
       | Zero_v => Zero_v
@@ -269,6 +272,9 @@ fun liftNeg i v : v =
 fun liftSub i (v1,v2) : v =
     case (v1,v2) of
         (Real_v r1, Real_v r2) => Real_v(r1-r2)
+      | (Real_v r1, Int_v i2) => Real_v(r1 - real i2)
+      | (Int_v i1, Real_v r2) => Real_v(real i1 - r2)
+      | (Int_v i1, Int_v i2) => Int_v(i1-i2)
       | (Tuple_v vs1, Tuple_v vs2) =>
         (Tuple_v (ListPair.mapEq (liftSub i) (vs1,vs2))
          handle ListPair.UnequalLengths =>
@@ -284,6 +290,9 @@ fun liftSub i (v1,v2) : v =
 fun liftAdd i (v1,v2) : v =
     case (v1,v2) of
         (Real_v r1, Real_v r2) => Real_v(r1+r2)
+      | (Real_v r1, Int_v i2) => Real_v(r1 + real i2)
+      | (Int_v i1, Real_v r2) => Real_v(real i1 + r2)
+      | (Int_v i1, Int_v i2) => Int_v(i1+i2)
       | (Tuple_v vs1, Tuple_v vs2) =>
         (Tuple_v (ListPair.mapEq (liftAdd i) (vs1,vs2))
          handle ListPair.UnequalLengths =>
@@ -294,15 +303,35 @@ fun liftAdd i (v1,v2) : v =
                 dieReg i "liftAdd: expecting arrays of equal lengths")
       | (Zero_v,v2) => v2
       | (v1,Zero_v) => v1
-      | _ => dieReg i "liftAdd: expecting matching structured values"
+      | _ => dieReg i ("liftAdd: expecting matching structured values - got "
+                       ^ pr_v v1 ^ " and " ^ pr_v v2)
 
-fun liftMulPow i opr v : v =
+fun liftMul i (v1,v2) : v =
+    case (v1,v2) of
+        (Real_v r1, Real_v r2) => Real_v(r1*r2)
+      | (Real_v r1, Int_v i2) => Real_v(r1 * real i2)
+      | (Int_v i1, Real_v r2) => Real_v(real i1 * r2)
+      | (Int_v i1, Int_v i2) => Int_v(i1*i2)
+      | (Tuple_v vs1, Tuple_v vs2) =>
+        (Tuple_v (ListPair.mapEq (liftAdd i) (vs1,vs2))
+         handle ListPair.UnequalLengths =>
+                dieReg i "liftMul: expecting tuples of equal lengths")
+      | (Array_v vs1, Array_v vs2) =>
+        (Array_v (ListPair.mapEq (liftMul i) (vs1,vs2))
+         handle ListPair.UnequalLengths =>
+                dieReg i "liftMul: expecting arrays of equal lengths")
+      | (Zero_v,v2) => v1
+      | (v1,Zero_v) => v2
+      | _ => dieReg i ("liftMul: expecting matching structured values - got "
+                       ^ pr_v v1 ^ " and " ^ pr_v v2)
+
+fun liftSmulPow i opr v : v =
     case v of
         Real_v r => Real_v (opr r)
-      | Tuple_v vs => Tuple_v (map (liftMulPow i opr) vs)
-      | Array_v vs => Array_v (map (liftMulPow i opr) vs)
+      | Tuple_v vs => Tuple_v (map (liftSmulPow i opr) vs)
+      | Array_v vs => Array_v (map (liftSmulPow i opr) vs)
       | Zero_v => Zero_v (* ok for mul and pow *)
-      | _ => dieReg i "liftMulPow: expecting structured value of reals"
+      | _ => dieReg i ("liftSmulPow: expecting structured value of reals - got " ^ pr_v v)
 
 fun eval (regof:'i -> Region.reg) (E:v env) (e:'i exp) : v =
     let fun ev E e =
@@ -317,10 +346,11 @@ fun eval (regof:'i -> Region.reg) (E:v env) (e:'i exp) : v =
                    | NONE => dieReg (regof i) ("unknown variable: " ^ x))
               | Add (e1,e2,i) => liftAdd (regof i) (ev E e1, ev E e2)
               | Sub (e1,e2,i) => liftSub (regof i) (ev E e1, ev E e2)
-              | Mul (e1,e2,i) =>
+              | Mul (e1,e2,i) => liftMul (regof i) (ev E e1, ev E e2)
+              | Smul (e1,e2,i) =>
                 (case ev E e1 of
-                     Real_v r => liftMulPow (regof i) (fn r' => r * r') (ev E e2)
-                   | _ => dieReg (regof i) ("expecting real as left argument to mul"))
+                     Real_v r => liftSmulPow (regof i) (fn r' => r * r') (ev E e2)
+                   | _ => dieReg (regof i) ("expecting real as left argument to *>"))
               | App (f,e,i) => (case look E f of
                                     SOME(Fun_v f) => f (ev E e)
                                   | SOME _ => dieReg (regof i) ("expecting function but found " ^ f)
@@ -339,7 +369,7 @@ fun eval (regof:'i -> Region.reg) (E:v env) (e:'i exp) : v =
                    | _  => dieReg (regof info) "expecting array"
                 )
               | Iota (n,_) => Array_v (List.tabulate (n, real_v o Real.fromInt))
-              | Pow (r,e,i) => liftMulPow (regof i)
+              | Pow (r,e,i) => liftSmulPow (regof i)
                                           (fn r' => Math.pow(r',r))
                                           (ev E e)
               | Red (_,_,i) => dieReg (regof i) "eval: red unsupported"
@@ -428,7 +458,7 @@ val rec p_e : rexp p =
 
 and p_e0 : rexp p =
     fn ts =>
-       ( (p_ae ??* p_bin "*" Mul p_ae) (fn (e,f) => f e)
+       ( (p_ae ??* ((p_bin "*" Mul p_ae) || (p_bin "*>" Smul p_e0))) (fn (e,f) => f e)
        ) ts
 
 and p_ae : rexp p =
@@ -724,6 +754,7 @@ fun info_of_exp (e: 'i exp) : 'i =
       | Add(_,_,i) => i
       | Sub(_,_,i) => i
       | Mul(_,_,i) => i
+      | Smul(_,_,i) => i
       | Var (_,i) => i
       | App(_,_,i) => i
       | Tuple (_,i) => i
@@ -751,8 +782,9 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
     (* Several operators (and values) are generic:
         - Add : 'a * 'a -> 'a
         - Sub : 'a * 'a -> 'a
+        - Mul : 'a * 'a -> 'a
         - 0 : 'a
-        - Mul : real * 'a -> 'a
+        - Smul : real * 'a -> 'a
      *)
     in case e of
            Real (f,r) => (Real (f,(r,real_ty)), real_ty)
@@ -771,7 +803,8 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
            end
          | Add (e1,e2,r) => tyinf_vbin Add (e1,e2,r)
          | Sub (e1,e2,r) => tyinf_vbin Sub (e1,e2,r)
-         | Mul (e1,e2,r) => tyinf_svbin Mul (e1,e2,r)
+         | Mul (e1,e2,r) => tyinf_vbin Mul (e1,e2,r)
+         | Smul (e1,e2,r) => tyinf_svbin Smul (e1,e2,r)
          | Var (x,r) => (case look TE x of
                              SOME ty => (Var(x,(r,ty)),ty)
                            | NONE => dieReg r ("unknown variable: " ^ x))
@@ -939,6 +972,35 @@ fun resolve_e (e : (Region.reg*ty) exp) : unit =
     in resolve_t t
     end
 
+fun resolve_ints e =
+    case e of
+        Real _ => e
+      | Int (n,(r,t)) => if is_real t then Real (real n,(r,t)) else e
+      | Zero _ => e
+      | Let (x,e1,e2,i) => Let (x,resolve_ints e1,resolve_ints e2,i)
+      | Add (e1,e2,i) => Add (resolve_ints e1,resolve_ints e2,i)
+      | Sub (e1,e2,i) => Sub (resolve_ints e1,resolve_ints e2,i)
+      | Mul (e1,e2,i) => Mul (resolve_ints e1,resolve_ints e2,i)
+      | Smul (e1,e2,i) => Smul (resolve_ints e1,resolve_ints e2,i)
+      | App (f,e,i) => App (f,resolve_ints e,i)
+      | Tuple (es,i) => Tuple (map resolve_ints es,i)
+      | Prj (i,e,info) => Prj (i,resolve_ints e,info)
+      | Map (x,f,es,info) => Map (x,resolve_ints f,resolve_ints es,info)
+      | Iota (n,i) => Iota (n,i)
+      | Pow (r,e,i) => Pow (r,resolve_ints e,i)
+      | Red (_,_,_) => e
+      | Array (es,i) => Array (map resolve_ints es,i)
+      | Range (from,to,step,i) => Range (resolve_ints from,resolve_ints to,resolve_ints step,i)
+      | Var _ => e
+
+and resolve_rel r =
+    case r of
+        Func (s,NONE,e1,e2,i) => Func (s,NONE,resolve_ints e1,resolve_ints e2,i)
+      | Func (s,SOME e',e1,e2,i) => Func (s,SOME(resolve_ints e'),resolve_ints e1,resolve_ints e2,i)
+      | Trans (r,i) => Trans (resolve_rel r,i)
+      | Comp (r1,r2,i) => Comp (resolve_rel r1,resolve_rel r2,i)
+      | Pairs (e,i) => Pairs (resolve_ints e,i)
+
 (* General type inference function *)
 fun tyinf_prg (prg: Region.reg prg) : (Region.reg*ty) prg * ty env =
     let fun tyinf TE ((f,x,e,r)::rest) (prg_acc,TEacc) =
@@ -956,7 +1018,17 @@ fun tyinf_prg (prg: Region.reg prg) : (Region.reg*ty) prg * ty env =
                               ( resolve_e e'
                               ; resolve_t fty )
                           ) prg'
-    in (prg',TE)
+        val prg'' = map (fn (f,x,e,r) =>
+                            (f,x,resolve_ints e,r)) prg'
+    in (prg'',TE)
+    end
+
+val tyinf_exp : ty env -> Region.reg exp -> (Region.reg*ty) exp * ty =
+ fn TE => fn e =>
+    let val (e,t) = tyinf_exp TE e
+    in resolve_e e
+     ; resolve_t t
+     ; (resolve_ints e,t)
     end
 
 end

@@ -1,0 +1,8 @@
+Typed program:
+ f : (real -> (real * real * real))
+ f(x) = 4*>(2.3,x,x)
+ g : (real -> (real * real * real))
+ g(x) = f 2
+Internal expression program:
+ f(x) = (4*(2.3,x,x))
+ g(x) = (f(2))

@@ -1,4 +1,4 @@
-TESTS=test0 test1 test2 test3 simple ba zero num
+TESTS=test0 test1 test2 test3 simple ba zero num add smul
 
 TESTFILES=$(TESTS:%=%.cad)
 RESFILES=$(TESTFILES:%.cad=%.res)

@@ -7,6 +7,7 @@ signature AST = sig
                   | Add of 'i exp * 'i exp * 'i
                   | Sub of 'i exp * 'i exp * 'i
                   | Mul of 'i exp * 'i exp * 'i
+                  | Smul of 'i exp * 'i exp * 'i
                   | Var of string * 'i
                   | App of string * 'i exp * 'i
                   | Tuple of 'i exp list * 'i

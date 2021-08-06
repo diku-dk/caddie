@@ -2,7 +2,7 @@
 fun norm xs = pow 0.5 (dprod3 (xs,xs))
 
 (* nrm : R^3 -> R^3 *)
-fun nrm xs = (pow -1.0 (norm xs)) * xs
+fun nrm xs = (pow -1.0 (norm xs)) *> xs
 
 (* rodriguez : R^3 x R^3 -> R^3 *)
 fun rodriguez p =
@@ -10,9 +10,9 @@ fun rodriguez p =
   in let X = #2 p
      in let normr = norm r
         in let nrmr = nrm r
-           in (cos normr) * X +
-              (sin normr) * cprod3(nrmr,X) +
-              (1.0 - cos normr) * (dprod3(nrmr,nrmr)) * X
+           in (cos normr) *> X +
+              (sin normr) *> cprod3(nrmr,X) +
+              (1.0 - cos normr) * (dprod3(nrmr,nrmr)) *> X
            end
         end
      end
@@ -50,7 +50,7 @@ fun project a =
            in let k = #5 a        (* R^2 *)
               in let X = #6 a     (* R^3 *)
                  in let rod = rodriguez (r, X - C)
-                    in f * (distort (k, p2e rod))
+                    in f *> (distort (k, p2e rod))
                        + x0
                     end
                  end

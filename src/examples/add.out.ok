@@ -1,0 +1,8 @@
+Typed program:
+ f : (real -> (real * real))
+ f(x) = (x,2)+(2.1,x)
+ g : (real -> (real * real))
+ g(x) = (x,2)-(2.1,x)
+Internal expression program:
+ f(x) = ((x,2)+(2.1,x))
+ g(x) = ((x,2)+~((2.1,x)))

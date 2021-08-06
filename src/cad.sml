@@ -121,6 +121,7 @@ fun compile (prg, exp_opt) =
             | Ast.Add(e1,e2,_) => E.DSL.+(ce e1, ce e2)
             | Ast.Sub(e1,e2,_) => E.DSL.-(ce e1, ce e2)
             | Ast.Mul(e1,e2,_) => E.DSL.*(ce e1, ce e2)
+            | Ast.Smul(e1,e2,_) => E.DSL.*(ce e1, ce e2)
             | Ast.Var(v,_) => E.DSL.V v
             | Ast.App("ln",e,_) => E.DSL.ln(ce e)
             | Ast.App("sin",e,_) => E.DSL.sin(ce e)
