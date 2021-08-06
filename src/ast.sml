@@ -541,7 +541,7 @@ datatype tinfo = Real_ti
                | Rel_ti of ty * ty
      and constraint =
          NonFunTy
-(*       | NumTy *)
+       | NumTy
        | ElemTy of int * ty
        | BaseTy of tinfo          (* tinfo is Real_ti or Int_ti *)
 
@@ -561,16 +561,11 @@ val real_ty : ty = URef.uref Real_ti
 
 val int_ty : ty = URef.uref Int_ti
 
-(*
 fun num_ty () : ty =
     fresh_ty0 [NumTy]
-*)
 
 fun nonfun_ty () : ty =
     fresh_ty0 [NonFunTy]
-
-fun fresh_ty_base (ti:tinfo) : ty =
-    fresh_ty0 [BaseTy ti]
 
 fun tuple_ty (ts : ty list) : ty =
     URef.uref (Tuple_ti ts)
@@ -583,6 +578,11 @@ fun rel_ty (t1:ty, t2:ty) : ty =
 
 fun array_ty (ty:ty) : ty =
     URef.uref (Array_ti ty)
+
+fun pair_ty (t1,t2) = tuple_ty[t1,t2]
+
+(* The following deconstructors assume that
+ * type variables have been resolved *)
 
 fun un_tuple (ty:ty) : ty list option =
     case URef.!! ty of
@@ -604,7 +604,7 @@ fun is_real (ty:ty) : bool =
         Real_ti => true
       | _ => false
 
-fun pair_ty (t1,t2) = tuple_ty[t1,t2]
+(* The initial type environment *)
 
 val real3_ty = tuple_ty[real_ty,real_ty,real_ty]
 
@@ -653,6 +653,8 @@ and pr_ti ti =
       | Tvar_ti (i,_) =>  "'a" ^ Int.toString i
       | Array_ti t => "[]" ^ pr_ty t
 
+(* Unification *)
+
 fun unify_ty (r:Region.reg) (t1,t2) : unit =
     URef.unify (fn (Real_ti,Real_ti) => Real_ti
                  | (Int_ti,Int_ti) => Int_ti
@@ -666,6 +668,7 @@ fun unify_ty (r:Region.reg) (t1,t2) : unit =
                  | (ti, Tvar_ti (_,cs)) => ( List.app (chk_constraint r ti) cs ; ti )
                  | _ => dieReg r ("failed to unify " ^ pr_ty t1 ^ " with " ^ pr_ty t2)
                ) (t1,t2)
+
 and unify_tys r (ts1,ts2) =
     let fun f (nil,nil) = ()
           | f (t1::ts1,t2::ts2) = (unify_ty r (t1,t2) ; f (ts1,ts2) )
@@ -674,6 +677,7 @@ and unify_tys r (ts1,ts2) =
                             " of a different length")
     in f (ts1,ts2)
     end
+
 and unify_all r nil = ()
   | unify_all r (ty::tys) =
     let fun f nil = ()
@@ -707,6 +711,9 @@ and chk_constraint (r:Region.reg) ti c =
         in unify_ty r (t,t')
         end
       | (ElemTy(i,ty), _) => dieReg r ("expecting tuple type but found " ^ pr_ti ti)
+      | (NumTy, Real_ti) => ()
+      | (NumTy, Int_ti) => ()
+      | (NumTy, _) => dieReg r ("expecting numeric type but found type " ^ pr_ti ti)
 
 fun info_of_exp (e: 'i exp) : 'i =
     case e of
@@ -749,7 +756,10 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
      *)
     in case e of
            Real (f,r) => (Real (f,(r,real_ty)), real_ty)
-         | Int (n,r)  => (Int (n, (r,int_ty)), int_ty)
+         | Int (n,r)  =>
+           let val t = num_ty()
+           in (Int (n, (r,t)), t)
+           end
          | Zero r =>
            let val t = nonfun_ty()
            in (Zero (r,t), t)
@@ -881,6 +891,7 @@ fun resolve_t t =
               List.foldl (fn (c,opt) =>
                              case (c,opt) of
                                  (NonFunTy, _) => opt
+                               | (NumTy, _) => opt
                                | (BaseTy ti, NONE) => SOME ti
                                | (BaseTy ti, SOME ti') =>
                                  if eq_ti (ti, ti') then opt
@@ -896,12 +907,14 @@ fun resolve_t t =
                                    case c of
                                        NonFunTy => m
                                      | BaseTy _ => m
+                                     | NumTy => m
                                      | ElemTy(i,_) => Int.max(i,m)) 0 cs
             fun look j cs =
                 case cs of
                     nil => NONE
                   | NonFunTy :: cs => look j cs
                   | BaseTy _ :: cs => look j cs
+                  | NumTy :: cs => look j cs
                   | ElemTy(i,t) :: cs => if j = i then SOME t
                                          else look j cs
         in if m = 0 then URef.::=(t, base)

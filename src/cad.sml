@@ -113,6 +113,9 @@ fun compile (prg, exp_opt) =
       fun ce e =
           case e of
               Ast.Real(f,_) => E.DSL.const (V.R f)
+            | Ast.Int(i,(r,t)) =>
+              if Ast.is_real t then E.DSL.const (V.R (Real.fromInt i))
+              else dieReg r "compile: integer not resolved to real"
             | Ast.Zero _ => E.DSL.const V.Z
             | Ast.Let(v,e1,e2,_) => E.DSL.lett(v,ce e1, ce e2)
             | Ast.Add(e1,e2,_) => E.DSL.+(ce e1, ce e2)
