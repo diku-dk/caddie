@@ -541,22 +541,36 @@ datatype tinfo = Real_ti
                | Rel_ti of ty * ty
      and constraint =
          NonFunTy
+(*       | NumTy *)
        | ElemTy of int * ty
-       | BaseTy of tinfo          (* Real_ti or Int_ti *)
+       | BaseTy of tinfo          (* tinfo is Real_ti or Int_ti *)
 
 withtype ty = tinfo URef.uref
 
-val fresh_ty : unit -> ty =
+val fresh_ty0 : constraint list -> ty =
  let val c = ref 0
- in fn () =>
+ in fn cs =>
        ( c := !c + 1
-       ; URef.uref(Tvar_ti (!c,nil))
+       ; URef.uref(Tvar_ti (!c,cs))
        )
  end
+
+fun fresh_ty () = fresh_ty0 nil
 
 val real_ty : ty = URef.uref Real_ti
 
 val int_ty : ty = URef.uref Int_ti
+
+(*
+fun num_ty () : ty =
+    fresh_ty0 [NumTy]
+*)
+
+fun nonfun_ty () : ty =
+    fresh_ty0 [NonFunTy]
+
+fun fresh_ty_base (ti:tinfo) : ty =
+    fresh_ty0 [BaseTy ti]
 
 fun tuple_ty (ts : ty list) : ty =
     URef.uref (Tuple_ti ts)
@@ -694,52 +708,6 @@ and chk_constraint (r:Region.reg) ti c =
         end
       | (ElemTy(i,ty), _) => dieReg r ("expecting tuple type but found " ^ pr_ti ti)
 
-fun ty_constraint_prj (r:Region.reg) (i,ty,tuplety) : unit =
-    case URef.!! tuplety of
-        Tuple_ti tys =>
-        let val ty' = List.nth(tys,i-1)
-                      handle _ =>
-                             dieReg r ("tuple projection " ^ Int.toString i ^
-                                       " out of bound: tuple contains only " ^
-                                       Int.toString (length tys) ^ " elements")
-        in unify_ty r (ty,ty')
-        end
-      | Tvar_ti(tv,cs) =>
-        let val c = ElemTy(i,ty)
-        in URef.::= (tuplety, Tvar_ti(tv,c::cs))
-        end
-      | _ => dieReg r ("failed to project from non-tuple type " ^ pr_ty tuplety)
-
-fun ty_constraint_nonfun (r:Region.reg) (t:ty) : unit =
-    case URef.!! t of
-        Tuple_ti ts => app (ty_constraint_nonfun r) ts
-      | Real_ti => ()
-      | Int_ti => ()
-      | Array_ti t => ty_constraint_nonfun r t
-      | Fun_ti _ => dieReg r "expecting nonfunction"
-      | Rel_ti _ => dieReg r "expecting nonfunction - found relation"
-      | Tvar_ti (i,cs) => URef.::= (t, Tvar_ti(i,NonFunTy :: cs))
-
-fun ty_constraint_base (r:Region.reg) (ti:tinfo) (t:ty) : unit =
-    case URef.!! t of
-        Tuple_ti ts => app (ty_constraint_base r ti) ts
-      | Array_ti t => ty_constraint_base r ti t
-      | Fun_ti _ => dieReg r ("expecting structural type with base type " ^ pr_ti ti ^
-                              " but found function type " ^ pr_ty t)
-      | Rel_ti _ => dieReg r ("expecting structural type with base type " ^ pr_ti ti ^
-                              " but found relation type " ^ pr_ty t)
-      | Tvar_ti (i,cs) => URef.::= (t, Tvar_ti(i,BaseTy ti :: cs))
-      | Real_ti =>
-        (case ti of
-             Real_ti => ()
-           | _ => dieReg r ("expecting structural type with base type real but found base type "
-                            ^ pr_ti ti))
-      | Int_ti =>
-        (case ti of
-             Int_ti => ()
-           | _ => dieReg r ("expecting structural type with base type int but found base type "
-                            ^ pr_ti ti))
-
 fun info_of_exp (e: 'i exp) : 'i =
     case e of
         Real(_,i) => i
@@ -783,9 +751,8 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
            Real (f,r) => (Real (f,(r,real_ty)), real_ty)
          | Int (n,r)  => (Int (n, (r,int_ty)), int_ty)
          | Zero r =>
-           let val t = fresh_ty()
-           in ty_constraint_nonfun r t
-            ; (Zero (r,t), t)
+           let val t = nonfun_ty()
+           in (Zero (r,t), t)
            end
          | Let (x,e1,e2,r) =>
            let val (e1',ty1) = tyinf_exp TE e1
@@ -815,8 +782,9 @@ fun tyinf_exp (TE: ty env) (e:Region.reg exp) : (Region.reg*ty) exp * ty =
            end
          | Prj (i,e1,r) =>
            let val (e1',ty1) = tyinf_exp TE e1
-               val t = fresh_ty()
-           in ty_constraint_prj r (i,t,ty1)
+               val t = fresh_ty() (* result *)
+               val t' = fresh_ty0 [ElemTy(i,t)]
+           in unify_ty r (ty1, t')
             ; (Prj(i,e1',(r,t)),t)
            end
          | Iota (n,r) =>
@@ -899,18 +867,6 @@ and tyinf_rel (TE: ty env) (rel:Region.reg rel) : (Region.reg*ty) rel * ty =
 
 val reg0 = (Region.botloc,Region.botloc)
 
-fun fresh_ty_nonfun () =
-    let val t = fresh_ty ()
-    in ty_constraint_nonfun reg0 t
-     ; t
-    end
-
-fun fresh_ty_base (ti:tinfo) =
-    let val t = fresh_ty ()
-    in ty_constraint_base reg0 ti t
-     ; t
-    end
-
 (* Resolve non-instantiated type variables by analysing the
  * type constraints; non-constrained type variables are instantiated
  * to type real. Projection constraints guide the number of elements
@@ -973,7 +929,7 @@ fun resolve_e (e : (Region.reg*ty) exp) : unit =
 (* General type inference function *)
 fun tyinf_prg (prg: Region.reg prg) : (Region.reg*ty) prg * ty env =
     let fun tyinf TE ((f,x,e,r)::rest) (prg_acc,TEacc) =
-            let val ty = fresh_ty_nonfun()
+            let val ty = nonfun_ty()
                 val (e',ty') = tyinf_exp (insert TE (x,ty)) e
                 val fty = fun_ty(ty,ty')
                 val TE' = insert TE (f, fty)
