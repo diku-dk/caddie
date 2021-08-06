@@ -1,5 +1,6 @@
-TESTFILES=test0.cad test1.cad test2.cad test3.cad simple.cad ba.cad
+TESTS=test0 test1 test2 test3 simple ba zero
 
+TESTFILES=$(TESTS:%=%.cad)
 RESFILES=$(TESTFILES:%.cad=%.res)
 
 CAD?=../cad
@@ -14,7 +15,7 @@ tst:
 %.out: %.cad ../cad
 	$(CAD) --Ptyped --Pexp $< > $@ 2>&1; echo "done" >> /dev/null
 
-%.res: %.out
+%.res: %.out %.out.ok
 	@(diff -aq $< $*.out.ok > /dev/null 2>&1; \
          if [ $$? -eq 0 ]; then \
              echo "Test $*: OK" > $@ \

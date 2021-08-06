@@ -1,0 +1,11 @@
+Typed program:
+ f : (real -> (real * real * real))
+ f(x) = 0+(2,3,x)
+ g : (real -> real)
+ g(x) = 3*x+#1 ((3,x)+(2+x,x))
+ h : (real -> real)
+ h(x) = g x*#3 (f x+0)
+Internal expression program:
+ f(x) = (Z+(2,3,x))
+ g(x) = ((3*x)+#1(((3,x)+((2+x),x))))
+ h(x) = ((g(x))*#3{of 3}(((f(x))+Z)))
