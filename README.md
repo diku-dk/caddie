@@ -1,6 +1,7 @@
 # caddie [![CI](https://github.com/diku-dk/caddie/workflows/CI/badge.svg)](https://github.com/diku-dk/caddie/actions)
 
-Combinatory Automatic Differentiation
+Combinatory Automatic Differentiation. Much of the code for Caddie is 
+based on the paper [Combinatory adjoints and differentiation](https://elsman.com/pdf/msfp22.pdf) [1].
 
 ## Combinatory AD
 
@@ -396,6 +397,9 @@ Translation to point-free notation:
 
     |map (λx.e₁) e₂|δ   =   map (|e₁|(δ ○ π₂, x: π₁)) ○ (|e₂|δ × Id) ○ Δ
 
+# References
+
+[1] Martin Elsman, Fritz Henglein, Robin Kaarsgaard, Mikkel K. Mathiesen, and Robert Schenck. Combinatory adjoints and differentiation. In Ninth Workshop on Mathematically Structured Functional Programming (MSFP 2022). Munich, Germany. April, 2022. [PDF](https://elsman.com/pdf/msfp22.pdf).
 
 Questions:
 
