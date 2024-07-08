@@ -1,7 +1,7 @@
 # caddie [![CI](https://github.com/diku-dk/caddie/workflows/CI/badge.svg)](https://github.com/diku-dk/caddie/actions)
 
 Combinatory Automatic Differentiation. Much of the code for Caddie is 
-based on the paper [Combinatory adjoints and differentiation](https://elsman.com/pdf/msfp22.pdf) [1].
+based on the paper [Combinatory Adjoints and Differentiation](https://elsman.com/pdf/msfp22.pdf) [1].
 
 ## Combinatory AD
 
@@ -399,7 +399,7 @@ Translation to point-free notation:
 
 # References
 
-[1] Martin Elsman, Fritz Henglein, Robin Kaarsgaard, Mikkel K. Mathiesen, and Robert Schenck. Combinatory adjoints and differentiation. In Ninth Workshop on Mathematically Structured Functional Programming (MSFP 2022). Munich, Germany. April, 2022. [PDF](https://elsman.com/pdf/msfp22.pdf).
+[1] Martin Elsman, Fritz Henglein, Robin Kaarsgaard, Mikkel K. Mathiesen, and Robert Schenck. Combinatory Adjoints and Differentiation. In Ninth Workshop on Mathematically Structured Functional Programming (MSFP 2022). Munich, Germany. April, 2022. [PDF](https://elsman.com/pdf/msfp22.pdf).
 
 Questions:
 
