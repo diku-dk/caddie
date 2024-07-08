@@ -388,19 +388,16 @@ conditional point-free notation:
 
     e ::= ... | map (λx.e) e | repl e e
 
-	p ::= ... | map p | repl
+    p ::= ... | map p | repl
 
     m ::= ... | repl e
-
 
 Translation to point-free notation:
 
     |map (λx.e₁) e₂|δ   =   map (|e₁|(δ ○ π₂, x: π₁)) ○ (|e₂|δ × Id) ○ Δ
 
+How do we differentiate `map p`?
+
 # References
 
 [1] Martin Elsman, Fritz Henglein, Robin Kaarsgaard, Mikkel K. Mathiesen, and Robert Schenck. Combinatory Adjoints and Differentiation. In Ninth Workshop on Mathematically Structured Functional Programming (MSFP 2022). Munich, Germany. April, 2022. [PDF](https://elsman.com/pdf/msfp22.pdf).
-
-Questions:
-
-1. Can we differentiate `map p`?
