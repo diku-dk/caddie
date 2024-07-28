@@ -1,6 +1,6 @@
 RESFILES_ALL=ad_ex0.res ad_ex1.res ba.res rad_ex0.res rad_ex1.res
 
-MLKIT ?= mlkit
+MLCOMP ?= mlkit
 
 .PHONY: all
 all: test
@@ -24,7 +24,7 @@ test: $(RESFILES_ALL)
 	./$< > $@
 
 %.exe: %.mlb *.sml
-	$(MLKIT) -o $@ $<
+	$(MLCOMP) -output $@ $<
 
 %.res: %.out
 	@(diff -aq $< $*.out.ok > /dev/null 2>&1; \
